@@ -1,5 +1,5 @@
 /*
- * Intro.java
+ * IntroActivity.java
  *
  * Copyright (C) 2010 Tim Marston <tim@ed.am>
  *
@@ -30,7 +30,7 @@ import android.os.Bundle;
 import android.text.util.Linkify;
 import android.widget.TextView;
 
-public class Intro extends WizardActivity {
+public class IntroActivity extends WizardActivity {
 
 	@Override
 	protected void onCreate( Bundle savedInstanceState )
@@ -38,7 +38,7 @@ public class Intro extends WizardActivity {
 		setContentView( R.layout.intro );
 		super.onCreate( savedInstanceState );
 
-		setNextActivity( ConfigureVCF.class );
+		setNextActivity( ConfigureVCFExportActivity.class );
 
 		TextView link = (TextView)findViewById( R.id.intro_link );
 		Linkify.addLinks( link, Pattern.compile( "The Export Contacts webpage" ),

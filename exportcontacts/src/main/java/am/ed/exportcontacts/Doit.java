@@ -66,7 +66,7 @@ public class Doit extends WizardActivity
 	private int _count_writes;
 	private int _count_skips;
 
-	protected Exporter _exporter = null;
+	protected ExporterThread _exporter = null;
 
 	public Handler _handler;
 
@@ -207,7 +207,7 @@ public class Doit extends WizardActivity
 						{
 							if( Doit.this != null )
 								Doit.this._exporter.wake(
-									Exporter.RESPONSE_POSITIVE );
+									ExporterThread.RESPONSE_POSITIVE );
 						}
 					} )
 				.setNegativeButton( R.string.error_abort,
@@ -217,7 +217,7 @@ public class Doit extends WizardActivity
 						{
 							if( Doit.this != null )
 								Doit.this._exporter.wake(
-									Exporter.RESPONSE_NEGATIVE );
+									ExporterThread.RESPONSE_NEGATIVE );
 						}
 					} )
 				.setOnCancelListener( _dialog_on_cancel_listener )
@@ -326,7 +326,7 @@ public class Doit extends WizardActivity
 		( (Button)findViewById( R.id.back ) ).setEnabled( false );
 
 		// create exporter
-		_exporter = new VcardExporter( this );
+		_exporter = new VcardExporterThread( this );
 
 		// start the service's thread
 		_exporter.start();

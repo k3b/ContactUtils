@@ -21,34 +21,34 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package am.ed.exportcontacts;
+package android.k3b.de.androidcontactlibrary.de.k3b.android.contactlib;
 
-import am.ed.exportcontacts.Exporter.ContactData;
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.content.ContentResolver;
 import android.database.Cursor;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds;
 
+import de.k3b.contactlib.ContactData;
+import de.k3b.contactlib.IConatactsReader;
+
 @TargetApi(5)
-public class ContactsContractBackend implements Backend
+public class ConatactsReaderAndroid5Impl implements IConatactsReader
 {
-	Activity _activity = null;
-	Exporter _exporter = null;
+	private final ContentResolver contentResolver;
 	Cursor _cur = null;
 
-	public ContactsContractBackend( Activity activity,
-		Exporter exporter )
+	public ConatactsReaderAndroid5Impl(ContentResolver contentResolver)
 	{
-		_activity = activity;
-		_exporter = exporter;
+		this.contentResolver = contentResolver;
 	}
 
 	@Override
 	public int getNumContacts()
 	{
 		// get number of aggregate contacts
-		Cursor cur = _activity.getContentResolver().query(
+		Cursor cur = this.contentResolver.query(
 			ContactsContract.Contacts.CONTENT_URI,
 			new String[] {
 				ContactsContract.Contacts._ID,
@@ -103,13 +103,13 @@ public class ContactsContractBackend implements Backend
 	}
 
 	@Override
-	public boolean getNextContact( Exporter.ContactData contact )
+	public boolean getNextContact( ContactData contact )
 	{
 		// set up cursor
 		if( _cur == null )
 		{
 			// get all aggregate contacts
-			_cur = _activity.getContentResolver().query(
+			_cur = this.contentResolver.query(
 				ContactsContract.Contacts.CONTENT_URI,
 				new String[] {
 					ContactsContract.Contacts._ID,
@@ -134,7 +134,7 @@ public class ContactsContractBackend implements Backend
 			ContactsContract.Contacts.DISPLAY_NAME ) ) );
 
 		// get all contact data pertaining to the aggregate contact
-		Cursor cur = _activity.getContentResolver().query(
+		Cursor cur = this.contentResolver.query(
 			ContactsContract.Data.CONTENT_URI,
 			new String[]{
 				ContactsContract.Data.MIMETYPE,

@@ -1,5 +1,5 @@
 /*
- * ConfigureVCF.java
+ * ConfigureVCFExportActivity.java
  *
  * Copyright (C) 2010 Tim Marston <tim@ed.am>
  *
@@ -35,7 +35,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 
-public class ConfigureVCF extends WizardActivity
+public class ConfigureVCFExportActivity extends WizardActivity
 {
 	public final static int DIALOG_FILECHOOSER = 1;
 	public final static int DIALOG_NOSDCARD = 2;

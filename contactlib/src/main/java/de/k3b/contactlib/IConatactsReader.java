@@ -1,5 +1,5 @@
 /*
- * Backend.java
+ * IConatactsReader.java
  *
  * Copyright (C) 2011 Tim Marston <tim@ed.am>
  *
@@ -21,9 +21,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package am.ed.exportcontacts;
+package de.k3b.contactlib;
 
-public interface Backend
+import de.k3b.contactlib.ContactData;
+
+public interface IConatactsReader
 {
 	/**
 	 * Return the number of contacts that exist and that will be exported.
@@ -37,6 +39,6 @@ public interface Backend
 	 *
 	 * @return a ContactData
 	 */
-	public boolean getNextContact( Exporter.ContactData contact );
+	public boolean getNextContact( ContactData contact );
 
 }

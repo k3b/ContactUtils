@@ -21,35 +21,34 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package am.ed.exportcontacts;
+package android.k3b.de.androidcontactlibrary.de.k3b.android.contactlib;
 
-import am.ed.exportcontacts.Exporter.ContactData;
-import android.app.Activity;
+import android.annotation.TargetApi;
+import android.content.ContentResolver;
 import android.database.Cursor;
 import android.provider.Contacts;
 
+import de.k3b.contactlib.ContactData;
+import de.k3b.contactlib.IConatactsReader;
+
 @SuppressWarnings( "deprecation" )
-public class ContactsBackend implements Backend
+@TargetApi(5)
+public class ConatactsReaderAndroid3Impl implements IConatactsReader
 {
-	Activity _activity = null;
-	Exporter _exporter = null;
+	ContentResolver contentResolver = null;
 	Cursor _cur = null;
 
-	public ContactsBackend( Activity activity, Exporter exporter )
+	private final AndroidContactReader androidContactReader;
+	public ConatactsReaderAndroid3Impl(ContentResolver contentResolver)
 	{
-		_activity = activity;
-		_exporter = exporter;
+		this.contentResolver = contentResolver;
+		androidContactReader = new AndroidContactReader(contentResolver);
 	}
 
 	@Override
 	public int getNumContacts()
 	{
-		Cursor cursor = _activity.managedQuery(
-			Contacts.People.CONTENT_URI,
-			new String[] {
-				Contacts.People._ID,
-			}, null, null, null );
-		return cursor.getCount();
+		return this.androidContactReader.getNumContacts();
 	}
 
 	private int convertBackendTypeToType( Class< ? > cls, int type )
@@ -87,13 +86,13 @@ public class ContactsBackend implements Backend
 	}
 
 	@Override
-	public boolean getNextContact( Exporter.ContactData contact )
+	public boolean getNextContact( ContactData contact )
 	{
 		// set up cursor
 		if( _cur == null )
 		{
 			// get all contacts
-			_cur = _activity.getContentResolver().query(
+			_cur = contentResolver.query(
 				Contacts.People.CONTENT_URI,
 				new String[] {
 					Contacts.People._ID,
@@ -124,7 +123,7 @@ public class ContactsBackend implements Backend
 			contact.addNote( note );
 
 		// add the organisations
-		Cursor cur = _activity.getContentResolver().query(
+		Cursor cur = contentResolver.query(
 			Contacts.Organizations.CONTENT_URI,
 			new String[] {
 				Contacts.Organizations.COMPANY,
@@ -142,7 +141,7 @@ public class ContactsBackend implements Backend
 		cur.close();
 
 		// add the phone numbers
-		cur = _activity.getContentResolver().query(
+		cur = contentResolver.query(
 			Contacts.Phones.CONTENT_URI,
 			new String[] {
 				Contacts.Phones.NUMBER,
@@ -160,7 +159,7 @@ public class ContactsBackend implements Backend
 		cur.close();
 
 		// add the email and postal addresses
-		cur = _activity.getContentResolver().query(
+		cur = contentResolver.query(
 			Contacts.ContactMethods.CONTENT_URI,
 			new String[] {
 				Contacts.ContactMethods.KIND,

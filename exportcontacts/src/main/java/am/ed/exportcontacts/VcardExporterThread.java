@@ -1,5 +1,5 @@
 /*
- * Exporter.java
+ * ExporterThread.java
  *
  * Copyright (C) 2011 to 2013 Tim Marston <tim@ed.am>
  *
@@ -33,12 +33,14 @@ import java.util.Iterator;
 
 import android.content.SharedPreferences;
 
-public class VcardExporter extends Exporter
+import de.k3b.contactlib.ContactData;
+
+public class VcardExporterThread extends ExporterThread
 {
 	protected FileOutputStream _ostream = null;
 	protected boolean _first_contact = true;
 
-	public VcardExporter( Doit doit )
+	public VcardExporterThread(Doit doit )
 	{
 		super( doit );
 	}
@@ -49,7 +51,7 @@ public class VcardExporter extends Exporter
 		SharedPreferences prefs = getSharedPreferences();
 
 		// create output filename
-		File file = new File( ConfigureVCF.getSdCardPathPrefix() +
+		File file = new File( ConfigureVCFExportActivity.getSdCardPathPrefix() +
 			prefs.getString( "path", "/" ) +
 			prefs.getString( "filename", "android-contacts.vcf" ) );
 
@@ -256,7 +258,7 @@ public class VcardExporter extends Exporter
 		out.append( fold( "N:" + value ) + "\n" );
 
 		// append organisations and titles
-		ArrayList< Exporter.ContactData.OrganisationDetail > organisations =
+		ArrayList< ContactData.OrganisationDetail > organisations =
 			contact.getOrganisations();
 		if( organisations != null ) {
 			for( int a = 0; a < organisations.size(); a++ ) {
@@ -270,7 +272,7 @@ public class VcardExporter extends Exporter
 		}
 
 		// append phone numbers
-		ArrayList< Exporter.ContactData.NumberDetail > numbers =
+		ArrayList< ContactData.NumberDetail > numbers =
 			contact.getNumbers();
 		if( numbers != null ) {
 			for( int a = 0; a < numbers.size(); a++ ) {
@@ -297,7 +299,7 @@ public class VcardExporter extends Exporter
 		}
 
 		// append email addresses
-		ArrayList< Exporter.ContactData.EmailDetail > emails =
+		ArrayList< ContactData.EmailDetail > emails =
 			contact.getEmails();
 		if( emails != null ) {
 			for( int a = 0; a < emails.size(); a++ ) {
@@ -316,7 +318,7 @@ public class VcardExporter extends Exporter
 		}
 
 		// append addresses
-		ArrayList< Exporter.ContactData.AddressDetail > addresses =
+		ArrayList< ContactData.AddressDetail > addresses =
 			contact.getAddresses();
 		if( addresses != null ) {
 			for( int a = 0; a < addresses.size(); a++ ) {
