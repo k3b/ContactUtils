@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+ * intro.xml
+ *
+ * Copyright (C) 2009 to 2012 Tim Marston <tim@ed.am>
+ *
+ * This file is part of the Import Contacts program (hereafter referred
+ * to as "this program").  For more information, see
+ * http://ed.am/dev/android/import-contacts
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="fill_parent">
+
+	<ScrollView android:layout_width="fill_parent" android:layout_height="0dip" android:layout_weight="1" >
+		<LinearLayout android:layout_height="wrap_content" android:orientation="vertical" android:layout_width="fill_parent" android:paddingLeft="10dp" android:paddingRight="10dp" android:paddingTop="6dp" android:paddingBottom="6dp">
+
+			<RelativeLayout android:layout_width="fill_parent" android:layout_height="wrap_content">
+				<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/intro_title" android:textAppearance="?android:attr/textAppearanceMedium" android:layout_alignParentLeft="true" />
+				<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/intro_version" android:gravity="right" android:layout_alignParentRight="true" android:paddingRight="10dp" />
+			</RelativeLayout>
+			<TextView android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="@string/intro_summary" android:paddingBottom="5dp" />
+			<TextView android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="@string/intro_help"/>
+			<TextView android:id="@+id/intro_link" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="@string/intro_link" android:gravity="center" android:paddingBottom="18dp" />
+			<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/intro_thanks" android:drawableRight="@drawable/family_pic" android:drawablePadding="10dp" android:paddingLeft="6dp" android:paddingRight="10dp" android:paddingTop="4dp" android:paddingBottom="4dp" android:background="#555555" />
+			<TextView android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="@string/intro_licence" android:paddingTop="16dp" />
+
+		</LinearLayout>
+	</ScrollView>
+
+	<LinearLayout android:orientation="horizontal" android:layout_height="wrap_content" android:layout_width="fill_parent" android:gravity="right" android:background="@android:drawable/bottom_bar" android:weightSum="3">
+		<Button android:id="@+id/back" android:text="@string/back" android:layout_height="wrap_content" android:layout_width="wrap_content" android:layout_weight="1" android:enabled="false" />
+		<Button android:id="@+id/next" android:text="@string/next" android:layout_height="wrap_content" android:layout_width="wrap_content" android:layout_weight="1" android:enabled="false"/>
+	</LinearLayout>
+
+</LinearLayout>

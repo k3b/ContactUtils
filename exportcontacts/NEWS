@@ -1,0 +1,20 @@
+version 1.0.3 (2014-03-02)
+
+	- new family picture!
+	- added API v18 target (so the app doesn't run in compatibility mode)
+	- added permission to write to sdcard (how did it ever work!?)
+	- other minor bug fixes
+
+version 1.0.2 (2013-07-19)
+
+	- new family picture  :o)
+	- added support for birthday (BDAY) fields (Android 2.0+ only)
+	- vcards now separated with a newline
+
+version 1.0.1 (2013-01-06)
+
+	- minor bug fix (GREF leak)
+
+version 1.0 (2012-12-21)
+
+	- initial release
