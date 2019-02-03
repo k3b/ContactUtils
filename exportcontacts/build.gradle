@@ -1,13 +1,13 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 23
+    compileSdkVersion 19
     defaultConfig {
-        applicationId "android.k3b.de.contactutils"
-        minSdkVersion 1
-        targetSdkVersion 23
-        versionCode 1
-        versionName "1.0"
+        applicationId "android.k3b.de.exportcontacts"
+        minSdkVersion 3
+        targetSdkVersion 19
+        versionCode 10003
+        versionName "1.0.3"
     }
     buildTypes {
         release {
