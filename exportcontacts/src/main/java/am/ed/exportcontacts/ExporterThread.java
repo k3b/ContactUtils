@@ -24,8 +24,8 @@
 package am.ed.exportcontacts;
 
 import android.content.SharedPreferences;
-import android.k3b.de.androidcontactlibrary.de.k3b.android.contactlib.ConatactsReaderAndroid3Impl;
-import android.k3b.de.androidcontactlibrary.de.k3b.android.contactlib.ConatactsReaderAndroid5Impl;
+import de.k3b.android.contactlib.ConatactsReaderAndroid3Impl;
+import de.k3b.android.contactlib.ConatactsReaderAndroid5Impl;
 import android.os.Message;
 
 import de.k3b.contactlib.ContactData;
@@ -43,7 +43,7 @@ public class ExporterThread extends Thread
 	public final static int RESPONSEEXTRA_NONE = 0;
 	public final static int RESPONSEEXTRA_ALWAYS = 1;
 
-	private Doit _doit;
+	private DoExportActivity _doExportActivity;
 	private int _response;
 	private boolean _abort = false;
 	private boolean _is_finished = false;
@@ -51,9 +51,9 @@ public class ExporterThread extends Thread
 	@SuppressWarnings( "serial" )
 	protected class AbortExportException extends Exception { };
 
-	public ExporterThread(Doit doit )
+	public ExporterThread(DoExportActivity doExportActivity)
 	{
-		_doit = doit;
+		_doExportActivity = doExportActivity;
 	}
 
 	@Override
@@ -87,9 +87,9 @@ public class ExporterThread extends Thread
 		// set up a contact reader
 		IConatactsReader conatactsReader = null;
 		if( Integer.parseInt( android.os.Build.VERSION.SDK ) >= 5 )
-			conatactsReader = new ConatactsReaderAndroid5Impl( _doit.getContentResolver());
+			conatactsReader = new ConatactsReaderAndroid5Impl( _doExportActivity.getContentResolver());
 		else
-			conatactsReader = new ConatactsReaderAndroid3Impl(_doit.getContentResolver());
+			conatactsReader = new ConatactsReaderAndroid3Impl(_doExportActivity.getContentResolver());
 
 		// check we have contacts
 		int num_contacts = conatactsReader.getNumContacts();
@@ -114,9 +114,9 @@ public class ExporterThread extends Thread
 			// export this one
 			checkAbort();
 			if( exportContact( contact ) )
-				_doit._handler.sendEmptyMessage( Doit.MESSAGE_CONTACTWRITTEN );
+				_doExportActivity._handler.sendEmptyMessage( DoExportActivity.MESSAGE_CONTACTWRITTEN );
 			else
-				_doit._handler.sendEmptyMessage( Doit.MESSAGE_CONTACTSKIPPED );
+				_doExportActivity._handler.sendEmptyMessage( DoExportActivity.MESSAGE_CONTACTSKIPPED );
 			setProgress( count++ );
 		}
 		setProgress( num_contacts );
@@ -147,20 +147,20 @@ public class ExporterThread extends Thread
 
 	protected SharedPreferences getSharedPreferences()
 	{
-		return _doit.getSharedPreferences();
+		return _doExportActivity.getSharedPreferences();
 	}
 
 	protected void showError( int res ) throws AbortExportException
 	{
-		showError( _doit.getText( res ).toString() );
+		showError( _doExportActivity.getText( res ).toString() );
 	}
 
 	synchronized protected void showError( String message )
 			throws AbortExportException
 	{
 		checkAbort();
-		_doit._handler.sendMessage( Message.obtain(
-			_doit._handler, Doit.MESSAGE_ERROR, message ) );
+		_doExportActivity._handler.sendMessage( Message.obtain(
+			_doExportActivity._handler, DoExportActivity.MESSAGE_ERROR, message ) );
 		try {
 			wait();
 		}
@@ -173,15 +173,15 @@ public class ExporterThread extends Thread
 
 	protected void showContinueOrAbort( int res ) throws AbortExportException
 	{
-		showContinueOrAbort( _doit.getText( res ).toString() );
+		showContinueOrAbort( _doExportActivity.getText( res ).toString() );
 	}
 
 	synchronized protected void showContinueOrAbort( String message )
 			throws AbortExportException
 	{
 		checkAbort();
-		_doit._handler.sendMessage( Message.obtain(
-			_doit._handler, Doit.MESSAGE_CONTINUEORABORT, message ) );
+		_doExportActivity._handler.sendMessage( Message.obtain(
+			_doExportActivity._handler, DoExportActivity.MESSAGE_CONTINUEORABORT, message ) );
 		try {
 			wait();
 		}
@@ -198,16 +198,16 @@ public class ExporterThread extends Thread
 	protected void setProgressMessage( int res ) throws AbortExportException
 	{
 		checkAbort();
-		_doit._handler.sendMessage( Message.obtain( _doit._handler,
-			Doit.MESSAGE_SETPROGRESSMESSAGE, getText( res ) ) );
+		_doExportActivity._handler.sendMessage( Message.obtain( _doExportActivity._handler,
+			DoExportActivity.MESSAGE_SETPROGRESSMESSAGE, getText( res ) ) );
 	}
 
 	protected void setProgressMax( int max_progress )
 			throws AbortExportException
 	{
 		checkAbort();
-		_doit._handler.sendMessage( Message.obtain(
-			_doit._handler, Doit.MESSAGE_SETMAXPROGRESS,
+		_doExportActivity._handler.sendMessage( Message.obtain(
+			_doExportActivity._handler, DoExportActivity.MESSAGE_SETMAXPROGRESS,
 			Integer.valueOf( max_progress ) ) );
 	}
 
@@ -215,16 +215,16 @@ public class ExporterThread extends Thread
 		throws AbortExportException
 	{
 		checkAbort();
-		_doit._handler.sendMessage( Message.obtain(
-			_doit._handler, Doit.MESSAGE_SETTMPPROGRESS,
+		_doExportActivity._handler.sendMessage( Message.obtain(
+			_doExportActivity._handler, DoExportActivity.MESSAGE_SETTMPPROGRESS,
 			Integer.valueOf( tmp_progress ) ) );
 	}
 
 	protected void setProgress( int progress ) throws AbortExportException
 	{
 		checkAbort();
-		_doit._handler.sendMessage( Message.obtain(
-			_doit._handler, Doit.MESSAGE_SETPROGRESS,
+		_doExportActivity._handler.sendMessage( Message.obtain(
+			_doExportActivity._handler, DoExportActivity.MESSAGE_SETPROGRESS,
 			Integer.valueOf( progress ) ) );
 	}
 
@@ -234,11 +234,11 @@ public class ExporterThread extends Thread
 		int message;
 		switch( action )
 		{
-		case ACTION_ALLDONE:	message = Doit.MESSAGE_ALLDONE; break;
+		case ACTION_ALLDONE:	message = DoExportActivity.MESSAGE_ALLDONE; break;
 		default:	// fall through
-		case ACTION_ABORT:		message = Doit.MESSAGE_ABORT; break;
+		case ACTION_ABORT:		message = DoExportActivity.MESSAGE_ABORT; break;
 		}
-		_doit._handler.sendEmptyMessage( message );
+		_doExportActivity._handler.sendEmptyMessage( message );
 
 		// stop
 		throw new AbortExportException();
@@ -246,13 +246,13 @@ public class ExporterThread extends Thread
 
 	protected CharSequence getText( int res )
 	{
-		return _doit.getText( res );
+		return _doExportActivity.getText( res );
 	}
 
 	protected void skipContact() throws AbortExportException
 	{
 		checkAbort();
-		_doit._handler.sendEmptyMessage( Doit.MESSAGE_CONTACTSKIPPED );
+		_doExportActivity._handler.sendEmptyMessage( DoExportActivity.MESSAGE_CONTACTSKIPPED );
 	}
 
 	synchronized protected void checkAbort() throws AbortExportException

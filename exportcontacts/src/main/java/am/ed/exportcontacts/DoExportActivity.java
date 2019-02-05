@@ -1,5 +1,5 @@
 /*
- * Doit.java
+ * DoExportActivity.java
  *
  * Copyright (C) 2011 Tim Marston <tim@ed.am>
  *
@@ -36,7 +36,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class Doit extends WizardActivity
+public class DoExportActivity extends WizardActivity
 {
 	private final static int DIALOG_ERROR = 0;
 	private final static int DIALOG_CONTINUEORABORT = 1;
@@ -189,8 +189,8 @@ public class Doit extends WizardActivity
 						public void onClick( DialogInterface dialog,
 							int whichButton )
 						{
-							if( Doit.this != null )
-								Doit.this._exporter.wake();
+							if( DoExportActivity.this != null )
+								DoExportActivity.this._exporter.wake();
 						}
 					} )
 				.setOnCancelListener( _dialog_on_cancel_listener )
@@ -205,8 +205,8 @@ public class Doit extends WizardActivity
 						public void onClick( DialogInterface dialog,
 							int which_button )
 						{
-							if( Doit.this != null )
-								Doit.this._exporter.wake(
+							if( DoExportActivity.this != null )
+								DoExportActivity.this._exporter.wake(
 									ExporterThread.RESPONSE_POSITIVE );
 						}
 					} )
@@ -215,8 +215,8 @@ public class Doit extends WizardActivity
 						public void onClick( DialogInterface dialog,
 							int which_button )
 						{
-							if( Doit.this != null )
-								Doit.this._exporter.wake(
+							if( DoExportActivity.this != null )
+								DoExportActivity.this._exporter.wake(
 									ExporterThread.RESPONSE_NEGATIVE );
 						}
 					} )

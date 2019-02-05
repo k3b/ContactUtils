@@ -35,6 +35,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 
+import de.k3b.android.gui.FileChooser;
+
 public class ConfigureVCFExportActivity extends WizardActivity
 {
 	public final static int DIALOG_FILECHOOSER = 1;
@@ -54,7 +56,7 @@ public class ConfigureVCFExportActivity extends WizardActivity
 		setContentView( R.layout.configure_vcf );
 		super.onCreate( savedInstanceState );
 
-		setNextActivity( Doit.class );
+		setNextActivity( DoExportActivity.class );
 
 		// get sdcard prefix
 		_sdcard_prefix = getSdCardPathPrefix();

@@ -21,7 +21,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package android.k3b.de.androidcontactlibrary.de.k3b.android.contactlib;
+package de.k3b.android.contactlib;
 
 import android.annotation.TargetApi;
 import android.content.ContentResolver;
@@ -38,20 +38,24 @@ public class ConatactsReaderAndroid3Impl implements IConatactsReader
 	ContentResolver contentResolver = null;
 	Cursor _cur = null;
 
-	private final AndroidContactReader androidContactReader;
-	public ConatactsReaderAndroid3Impl(ContentResolver contentResolver)
-	{
+	public ConatactsReaderAndroid3Impl(ContentResolver contentResolver)	{
 		this.contentResolver = contentResolver;
-		androidContactReader = new AndroidContactReader(contentResolver);
 	}
 
-	@Override
-	public int getNumContacts()
-	{
-		return this.androidContactReader.getNumContacts();
-	}
+    public int getNumContacts()
+    {
+        Cursor cursor = this.contentResolver.query(
+                Contacts.People.CONTENT_URI,
+                new String[] {
+                        Contacts.People._ID,
+                }, null, null, null );
 
-	private int convertBackendTypeToType( Class< ? > cls, int type )
+        final int count = cursor.getCount();
+        cursor.close();
+        return count;
+    }
+
+    private int convertBackendTypeToType( Class< ? > cls, int type )
 	{
 		if( cls == Contacts.Phones.class )
 		{

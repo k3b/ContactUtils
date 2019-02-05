@@ -21,7 +21,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package am.ed.exportcontacts;
+package de.k3b.android.gui;
 
 import java.io.File;
 import java.io.FileFilter;
@@ -47,6 +47,8 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
+
+import de.k3b.android.contactlib.R;
 
 public class FileChooser
 {
@@ -220,7 +222,7 @@ public class FileChooser
 			R.layout.filechooser, null );
 
 		// wire up buttons
-		( (Button)dialogView.findViewById( R.id.ok ) )
+		( (Button)dialogView.findViewById( R.id.filechooser_ok ) )
 			.setOnClickListener( _fileChooserButtonListener );
 		( (ListView)dialogView.findViewById( R.id.list ) )
 			.setOnItemClickListener( _fileChooserItemClickListener );
@@ -237,13 +239,11 @@ public class FileChooser
 	private OnClickListener _fileChooserButtonListener = new OnClickListener() {
 		public void onClick( View view )
 		{
-			switch( view.getId() )
-			{
-			case R.id.ok:
+		    // switch/case does not work in  libs
+			if (view.getId()== R.id.filechooser_ok) {
 				// close dialog and free (don't keep a reference)
 				_ok = true;
 				_dialog.dismiss();
-				break;
 			}
 		}
 	};
@@ -465,9 +465,9 @@ public class FileChooser
 
 		// enable/disable ok button
 		if( _mode == MODE_FILE )
-			_dialog.findViewById( R.id.ok ).setEnabled( _filename != "" );
+			_dialog.findViewById( R.id.filechooser_ok ).setEnabled( _filename != "" );
 		else
-			_dialog.findViewById( R.id.ok ).setEnabled( true );
+			_dialog.findViewById( R.id.filechooser_ok ).setEnabled( true );
 	}
 
 }

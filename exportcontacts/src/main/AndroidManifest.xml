@@ -45,7 +45,7 @@
 		</activity>
 		<activity android:name=".ConfigureVCFExportActivity"
 				android:configChanges="keyboardHidden|orientation" />
-		<activity android:name=".Doit"
+		<activity android:name=".DoExportActivity"
 				android:configChanges="keyboardHidden|orientation" />
 
 	</application>

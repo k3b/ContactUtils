@@ -21,10 +21,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package android.k3b.de.androidcontactlibrary.de.k3b.android.contactlib;
+package de.k3b.android.contactlib;
 
 import android.annotation.TargetApi;
-import android.app.Activity;
 import android.content.ContentResolver;
 import android.database.Cursor;
 import android.provider.ContactsContract;

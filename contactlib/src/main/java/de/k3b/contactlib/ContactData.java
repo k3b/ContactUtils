@@ -21,8 +21,8 @@ public class ContactData
 
         public OrganisationDetail( String org, String title )
         {
-            _org = org != null && org.length() > 0? org : null;
-            _title = title != null && title.length() > 0? title : null;
+            _org = getValueOrNull(org);
+            _title = getValueOrNull(title);
         }
 
         public String getOrganisation()
@@ -44,7 +44,7 @@ public class ContactData
         public NumberDetail( int type, String num )
         {
             _type = type;
-            _num = num != null && num.length() > 0? num : null;
+            _num = getValueOrNull(num);
         }
 
         public int getType()
@@ -66,7 +66,7 @@ public class ContactData
         public EmailDetail( int type, String email )
         {
             _type = type;
-            _email = email != null && email.length() > 0? email : null;
+            _email = getValueOrNull(email);
         }
 
         public int getType()
@@ -88,7 +88,7 @@ public class ContactData
         public AddressDetail( int type, String addr )
         {
             _type = type;
-            _addr = addr != null && addr.length() > 0? addr : null;
+            _addr = getValueOrNull(addr);
         }
 
         public int getType()
@@ -112,7 +112,14 @@ public class ContactData
 
     public void setName( String name )
     {
-        _name = name != null && name.length() > 0? name : null;
+        _name = getValueOrNull(name);
+    }
+
+    /**
+     * @return null if value.len is 0
+     */
+    private static String getValueOrNull(String value) {
+        return value != null && value.length() > 0? value : null;
     }
 
     public String getName()
@@ -194,6 +201,10 @@ public class ContactData
         return _birthday;
     }
 
+    /**
+     *
+     * @return fist  of name, fist-organisatio, first-number, first-email
+     */
     public String getPrimaryIdentifier()
     {
         if( _name != null )

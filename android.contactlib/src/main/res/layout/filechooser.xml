@@ -23,7 +23,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
 
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="fill_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingLeft="20dp" android:paddingRight="20dp" >
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="fill_parent" android:layout_height="wrap_content"
+	android:orientation="vertical" android:paddingLeft="20dp" android:paddingRight="20dp" >
 
 	<ListView android:id="@+id/list" android:layout_width="fill_parent" android:layout_weight="1" android:layout_height="0dip" android:cacheColorHint="#00000000" />
 
@@ -34,6 +36,7 @@
 		<TextView android:id="@+id/path" android:layout_width="fill_parent" android:layout_height="wrap_content" />
 	</LinearLayout>
 
-	<Button android:layout_height="wrap_content" android:layout_width="fill_parent" android:text="@string/filechooser_ok" android:id="@+id/ok" android:layout_marginTop="10dp" />
+	<Button android:layout_height="wrap_content" android:layout_width="fill_parent"
+		android:text="@string/filechooser_ok" android:id="@+id/filechooser_ok" android:layout_marginTop="10dp" />
 
 </LinearLayout>
