@@ -34,7 +34,7 @@ import de.k3b.contactlib.ContactData;
 import de.k3b.contactlib.IConatactsReader;
 
 @SuppressWarnings( "deprecation" )
-@TargetApi(5)
+@TargetApi(3)
 public class ConatactsReaderAndroid3Impl implements IConatactsReader
 {
 	ContentResolver contentResolver = null;
@@ -104,7 +104,9 @@ public class ConatactsReaderAndroid3Impl implements IConatactsReader
 					Contacts.People._ID,
 					Contacts.People.NAME,
 					Contacts.People.NOTES,
-				}, null, null, null );
+                        Contacts.People.ISPRIMARY,
+
+                }, null, null, null );
 		}
 
 		// if there are no more contacts, abort
@@ -134,16 +136,20 @@ public class ConatactsReaderAndroid3Impl implements IConatactsReader
 			new String[] {
 				Contacts.Organizations.COMPANY,
 				Contacts.Organizations.TITLE,
+                Contacts.Organizations.ISPRIMARY,
 			}, Contacts.Organizations.PERSON_ID + " = ?",
 			new String[] { id.toString() },
 			Contacts.Organizations.ISPRIMARY + " DESC, " +
 				Contacts.Organizations.PERSON_ID + " ASC" );
-		while( cur.moveToNext() )
-			contact.addOrganisation( contact.new OrganisationDetail(
-				cur.getString( cur.getColumnIndex(
-					Contacts.Organizations.COMPANY ) ),
-				cur.getString( cur.getColumnIndex(
-					Contacts.Organizations.TITLE ) ) ) );
+		while( cur.moveToNext() ) {
+            boolean isPrimary = getInt(cur,Contacts.Organizations.ISPRIMARY)  != 0;
+
+            final String organisation = cur.getString(cur.getColumnIndex(
+                    Contacts.Organizations.COMPANY));
+            final String title = cur.getString(cur.getColumnIndex(
+                    Contacts.Organizations.TITLE));
+            contact.addOrganisation( organisation, title, isPrimary);
+        }
 		cur.close();
 
 		// add the phone numbers
@@ -152,16 +158,22 @@ public class ConatactsReaderAndroid3Impl implements IConatactsReader
 			new String[] {
 				Contacts.Phones.NUMBER,
 				Contacts.Phones.TYPE,
-			}, Contacts.Phones.PERSON_ID + " = ?",
+                    Contacts.Phones.ISPRIMARY,
+
+            }, Contacts.Phones.PERSON_ID + " = ?",
 			new String[] { id.toString() },
 			Contacts.Phones.ISPRIMARY + " DESC," +
 				Contacts.Phones.PERSON_ID + " ASC" );
-		while( cur.moveToNext() )
-			contact.addNumber( contact.new NumberDetail(
-				convertBackendTypeToType( Contacts.Phones.class,
-					cur.getInt( cur.getColumnIndex( Contacts.Phones.TYPE ) ) ),
-				cur.getString( cur.getColumnIndex(
-					Contacts.Phones.NUMBER ) ) ) );
+		while( cur.moveToNext() ) {
+            boolean isPrimary = getInt(cur,Contacts.Phones.ISPRIMARY)  != 0;
+
+            final int type = convertBackendTypeToType(Contacts.Phones.class,
+                    cur.getInt(cur.getColumnIndex(Contacts.Phones.TYPE)));
+            final String number = cur.getString(cur.getColumnIndex(
+                    Contacts.Phones.NUMBER));
+
+            contact.addNumber( number, type, isPrimary );
+        }
 		cur.close();
 
 		// add the email and postal addresses
@@ -171,7 +183,9 @@ public class ConatactsReaderAndroid3Impl implements IConatactsReader
 				Contacts.ContactMethods.KIND,
 				Contacts.ContactMethods.TYPE,
 				Contacts.ContactMethods.DATA,
-			},
+                Contacts.ContactMethods.ISPRIMARY,
+
+            },
 			Contacts.ContactMethods.PERSON_ID + " = ? AND " +
 				Contacts.ContactMethods.KIND + " IN( ?, ? )",
 			new String[] {
@@ -184,25 +198,38 @@ public class ConatactsReaderAndroid3Impl implements IConatactsReader
 		while( cur.moveToNext() ) {
 			int kind = cur.getInt( cur.getColumnIndex(
 				Contacts.ContactMethods.KIND ) );
-			if( kind == Contacts.KIND_EMAIL )
-				contact.addEmail( contact.new EmailDetail(
-					convertBackendTypeToType( Contacts.ContactMethods.class,
-						cur.getInt( cur.getColumnIndex(
-							Contacts.ContactMethods.TYPE ) ) ),
-					cur.getString( cur.getColumnIndex(
-						Contacts.ContactMethods.DATA ) ) ) );
-			else
-				contact.addAddress( contact.new AddressDetail(
-					convertBackendTypeToType( Contacts.ContactMethods.class,
-						cur.getInt( cur.getColumnIndex(
-							Contacts.ContactMethods.TYPE ) ) ),
-					cur.getString( cur.getColumnIndex(
-						Contacts.ContactMethods.DATA ) ) ) );
+			boolean isPrimary = getInt(cur,Contacts.ContactMethods.ISPRIMARY)  != 0;
+
+
+			if( kind == Contacts.KIND_EMAIL ) {
+                final int type = convertBackendTypeToType(Contacts.ContactMethods.class,
+                        getInt(cur, Contacts.ContactMethods.TYPE));
+                final String email = getString(cur, Contacts.ContactMethods.DATA);
+                contact.addEmail( email, type,isPrimary);
+            }
+			else {
+                final int type = convertBackendTypeToType(Contacts.ContactMethods.class,
+                        cur.getInt(cur.getColumnIndex(
+                                Contacts.ContactMethods.TYPE)));
+                final String adresse = cur.getString(cur.getColumnIndex(
+                        Contacts.ContactMethods.DATA));
+                contact.addAddress( adresse, type);
+            }
 		}
 		cur.close();
 
 		return true;
 	}
+
+    private String getString(Cursor detailCursor, String columnName) {
+        return detailCursor.getString(detailCursor.getColumnIndex(
+                columnName));
+    }
+
+    private int getInt(Cursor detailCursor, String colName) {
+        return detailCursor.getInt( detailCursor.getColumnIndex(
+                colName) );
+    }
 
     @Override
     public void close() throws IOException {

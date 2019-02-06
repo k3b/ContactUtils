@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.AbstractCollection;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 
 public class VcardWriter implements IContactsWriter {
     protected boolean _first_contact = true;
@@ -182,18 +184,18 @@ public class VcardWriter implements IContactsWriter {
         appendName(out, contact.getName());
 
         // append organisations and titles
-        appendOrganisationsAndTitles(out, contact.getOrganisations());
+        appendOrganisationsAndTitles(out, contact.getOrganisations().values());
 
         // append phone numbers
-        appendPhoneNumbers(out, contact.getNumbers());
+        appendPhoneNumbers(out, contact.getNumbers().values());
 
         // append email addresses
-        ArrayList< ContactData.EmailDetail > emails =
-                contact.getEmails();
+        Collection<ContactData.EmailDetail> emails =
+                contact.getEmails().values();
         appendEmailAddresses(out, emails);
 
         // append addresses
-        appendAdresses(out, contact.getAddresses());
+        appendAdresses(out, contact.getAddresses().values());
 
         // append notes
         appendLists(out, "NOTE:", contact.getNotes());
@@ -225,12 +227,12 @@ public class VcardWriter implements IContactsWriter {
         return true;
     }
 
-    private void appendEmailAddresses(StringBuilder out, ArrayList<ContactData.EmailDetail> emails) {
+    private void appendEmailAddresses(StringBuilder out, Collection<ContactData.EmailDetail> emails) {
         if( emails != null ) {
-            for( int a = 0; a < emails.size(); a++ ) {
+            for( ContactData.EmailDetail a :  emails) {
                 ArrayList< String > types = new ArrayList< String >();
                 types.add( "INTERNET" );
-                switch( emails.get( a ).getType() ) {
+                switch( a.getType() ) {
                     case ContactData.TYPE_HOME:
                         types.add( "HOME" ); break;
                     case ContactData.TYPE_WORK:
@@ -238,16 +240,17 @@ public class VcardWriter implements IContactsWriter {
                 }
                 out.append( fold( "EMAIL" +
                         ( types.size() > 0? ";TYPE=" + join( types, "," ) : "" ) +
-                        ":" + escape( emails.get( a ).getEmail() ) ) + "\n" );
+                        ":" + escape( a.getText() ) ) + "\n" );
             }
         }
     }
 
-    private void appendPhoneNumbers(StringBuilder out, ArrayList<ContactData.NumberDetail> numbers) {
+    private void appendPhoneNumbers(StringBuilder out, Collection<ContactData.NumberDetail> numbers) {
         if( numbers != null ) {
-            for( int a = 0; a < numbers.size(); a++ ) {
+            boolean first = true;
+            for( ContactData.NumberDetail a : numbers) {
                 ArrayList< String > types = new ArrayList< String >();
-                switch( numbers.get( a ).getType() ) {
+                switch( a.getType() ) {
                     case ContactData.TYPE_HOME:
                         types.add( "VOICE" ); types.add( "HOME" ); break;
                     case ContactData.TYPE_WORK:
@@ -261,23 +264,24 @@ public class VcardWriter implements IContactsWriter {
                     case ContactData.TYPE_MOBILE:
                         types.add( "VOICE" ); types.add( "CELL" ); break;
                 }
-                if( a == 0 ) types.add( "PREF" );
+                if( first ) types.add( "PREF" );
                 out.append( fold( "TEL" +
                         ( types.size() > 0? ";TYPE=" + join( types, "," ) : "" ) +
-                        ":" + escape( numbers.get( a ).getNumber() ) ) + "\n" );
+                        ":" + escape( a.getText() ) ) + "\n" );
+                first = false;
             }
         }
     }
 
-    private void appendOrganisationsAndTitles(StringBuilder out, ArrayList<ContactData.OrganisationDetail> organisations) {
+    private void appendOrganisationsAndTitles(StringBuilder out, Collection<ContactData.OrganisationDetail> organisations) {
         if( organisations != null ) {
-            for( int a = 0; a < organisations.size(); a++ ) {
-                if( organisations.get( a ).getOrganisation() != null )
+            for( ContactData.OrganisationDetail a : organisations) {
+                if( a.getText() != null )
                     out.append( fold( "ORG:" + escape(
-                            organisations.get( a ).getOrganisation() ) ) + "\n" );
-                if( organisations.get( a ).getTitle() != null )
+                            a.getText() ) ) + "\n" );
+                if( a.getTitle() != null )
                     out.append( fold( "TITLE:" + escape(
-                            organisations.get( a ).getTitle() ) ) + "\n" );
+                            a.getTitle() ) ) + "\n" );
             }
         }
     }
@@ -307,19 +311,19 @@ public class VcardWriter implements IContactsWriter {
         }
     }
 
-    private void appendLists(StringBuilder out, final String tag,ArrayList<String> notes) {
+    private void appendLists(StringBuilder out, final String tag, Collection<String> notes) {
         if( notes != null )
-            for( int a = 0; a < notes.size(); a++ ) {
-                out.append( fold( tag + escape( notes.get( a ) ) ) + "\n" );
+            for( String  a : notes) {
+                out.append( fold( tag + escape( a ) ) + "\n" );
             }
     }
 
-    private void appendAdresses(StringBuilder out, ArrayList<ContactData.AddressDetail> addresses) {
+    private void appendAdresses(StringBuilder out, Collection<ContactData.AddressDetail> addresses) {
         if( addresses != null ) {
-            for( int a = 0; a < addresses.size(); a++ ) {
+            for( ContactData.AddressDetail a : addresses ) {
                 ArrayList< String > types = new ArrayList< String >();
                 types.add( "POSTAL" );
-                switch( addresses.get( a ).getType() ) {
+                switch( a.getType() ) {
                     case ContactData.TYPE_HOME:
                         types.add( "HOME" ); break;
                     case ContactData.TYPE_WORK:
@@ -329,7 +333,7 @@ public class VcardWriter implements IContactsWriter {
                 // expects semicolon-delimited fields with specific purposes)
                 out.append( fold( "LABEL" +
                         ( types.size() > 0? ";TYPE=" + join( types, "," ) : "" ) +
-                        ":" + escape( addresses.get( a ).getAddress() ) ) + "\n" );
+                        ":" + escape( a.getText() ) ) + "\n" );
             }
         }
     }

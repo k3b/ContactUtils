@@ -1,4 +1,6 @@
-startParameter.offline = true
+// startParameter.offline = true
 
-include ':exportcontacts', ':contactlib', ':android.contactlib'
+include ':exportcontacts'
+include  ':contactlib'
+include  ':android.contactlib'
 include ':importcontacts'

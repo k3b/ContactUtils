@@ -23,13 +23,15 @@
 
 package am.ed.importcontacts;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
 import am.ed.importcontacts.Backend.ContactCreationException;
+import de.k3b.contactlib.ContactData;
+import de.k3b.contactlib.ContactsCache;
+
 import android.content.SharedPreferences;
 import android.os.Message;
 
@@ -348,7 +350,7 @@ public class ImporterThread extends Thread
 			if( id == null )
 			{
 				// create a new contact
-				id = _backend.addContact( contact._name );
+				id = _backend.addContact( contact.getName() );
 
 				// update cache
 				_contacts_cache.addLookup( cache_identifier, id );

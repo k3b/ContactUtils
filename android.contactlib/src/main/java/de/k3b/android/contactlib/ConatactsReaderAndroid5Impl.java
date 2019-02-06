@@ -155,13 +155,14 @@ public class ConatactsReaderAndroid5Impl implements IConatactsReader
 			String type = getString(detailCursor, ContactsContract.Data.MIMETYPE);
             count(this._statistics, type);
 
+            boolean isPrimary = (0  != getInt(detailCursor, ContactsContract.Data.IS_PRIMARY));
 			// add phone numbers
 			if( type.equals( CommonDataKinds.Phone.CONTENT_ITEM_TYPE ) )
-				addPhone(contact, detailCursor);
+				addPhone(contact, detailCursor, isPrimary);
 
 			// add email addresses
 			else if( type.equals( CommonDataKinds.Email.CONTENT_ITEM_TYPE ) )
-				addEmail(contact, detailCursor);
+				addEmail(contact, detailCursor, isPrimary);
 
 			// add postal addresses
 			else if( type.equals( CommonDataKinds.StructuredPostal.CONTENT_ITEM_TYPE ) )
@@ -169,7 +170,7 @@ public class ConatactsReaderAndroid5Impl implements IConatactsReader
 
 			// add organisations/titles
 			else if( type.equals( CommonDataKinds.Organization.CONTENT_ITEM_TYPE ) )
-				addOrganization(contact, detailCursor);
+				addOrganization(contact, detailCursor, isPrimary);
 
                 // add organisations/titles
             else if( type.equals( CommonDataKinds.GroupMembership.CONTENT_ITEM_TYPE ) ) {
@@ -210,31 +211,31 @@ public class ConatactsReaderAndroid5Impl implements IConatactsReader
         contact.addNote(getString(detailCursor, CommonDataKinds.Note.NOTE));
     }
 
-    private void addOrganization(ContactData contact, Cursor detailCursor) {
-        contact.addOrganisation(contact.new OrganisationDetail(
-                getString(detailCursor, CommonDataKinds.Organization.COMPANY),
-                getString(detailCursor, CommonDataKinds.Organization.TITLE)));
+    private void addOrganization(ContactData contact, Cursor detailCursor, boolean isPrimary) {
+        final String company = getString(detailCursor, CommonDataKinds.Organization.COMPANY);
+        final String title = getString(detailCursor, CommonDataKinds.Organization.TITLE);
+        contact.addOrganisation(company,title,isPrimary);
     }
 
     private void addAddress(ContactData contact, Cursor detailCursor) {
-        contact.addAddress( contact.new AddressDetail(
-            convertBackendTypeToType( CommonDataKinds.StructuredPostal.class,
-                getInt(detailCursor, CommonDataKinds.StructuredPostal.TYPE)),
-                getString(detailCursor, CommonDataKinds.StructuredPostal.FORMATTED_ADDRESS)) );
+        final int type = convertBackendTypeToType(CommonDataKinds.StructuredPostal.class,
+                getInt(detailCursor, CommonDataKinds.StructuredPostal.TYPE));
+        final String address = getString(detailCursor, CommonDataKinds.StructuredPostal.FORMATTED_ADDRESS);
+        contact.addAddress( address, type);
     }
 
-    private void addEmail(ContactData contact, Cursor detailCursor) {
-        contact.addEmail( contact.new EmailDetail(
-            convertBackendTypeToType( CommonDataKinds.Email.class,
-                getInt(detailCursor, CommonDataKinds.Email.TYPE)),
-                getString(detailCursor, CommonDataKinds.Email.DATA)) );
+    private void addEmail(ContactData contact, Cursor detailCursor, boolean isPrimary) {
+        final String email = getString(detailCursor, CommonDataKinds.Email.DATA);
+        final int type = convertBackendTypeToType(CommonDataKinds.Email.class,
+                getInt(detailCursor, CommonDataKinds.Email.TYPE));
+        contact.addEmail( email,type,isPrimary);
     }
 
-    private void addPhone(ContactData contact, Cursor detailCursor) {
-        contact.addNumber( contact.new NumberDetail(
-            convertBackendTypeToType( CommonDataKinds.Phone.class,
-                getInt(detailCursor, CommonDataKinds.Phone.TYPE)),
-                getString(detailCursor, CommonDataKinds.Phone.NUMBER)) );
+    private void addPhone(ContactData contact, Cursor detailCursor, boolean isPrimary) {
+        final String number = getString(detailCursor, CommonDataKinds.Phone.NUMBER);
+        final int type = convertBackendTypeToType(CommonDataKinds.Phone.class,
+                getInt(detailCursor, CommonDataKinds.Phone.TYPE));
+        contact.addNumber(number,type,isPrimary);
     }
 
     private String getString(Cursor detailCursor, String columnName) {

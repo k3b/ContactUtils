@@ -23,6 +23,9 @@
 
 package am.ed.importcontacts;
 
+import de.k3b.contactlib.ContactData;
+import de.k3b.contactlib.ContactsCache;
+
 public interface Backend
 {
 	/**

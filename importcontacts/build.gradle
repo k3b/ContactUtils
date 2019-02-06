@@ -20,4 +20,6 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation project(':contactlib')
+//    implementation project(':android.contactlib')
 }

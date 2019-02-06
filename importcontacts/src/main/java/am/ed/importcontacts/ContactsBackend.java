@@ -27,14 +27,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 
-import am.ed.importcontacts.ContactsCache.CacheIdentifier;
-
 import android.app.Activity;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.Contacts;
+
+import de.k3b.contactlib.ContactData;
+import de.k3b.contactlib.ContactsCache;
+import de.k3b.contactlib.ContactsCache.CacheIdentifier;
 
 @SuppressWarnings( "deprecation" )
 public class ContactsBackend implements Backend
@@ -74,8 +76,8 @@ public class ContactsBackend implements Backend
 					cur.getColumnIndex( Contacts.People.NOTES ) );
 
 			// if we can, add a lookup for the contact id by name
-			CacheIdentifier cache_identifier = CacheIdentifier.factory(
-				CacheIdentifier.Type.NAME, name );
+			ContactsCache.CacheIdentifier cache_identifier = ContactsCache.CacheIdentifier.factory(
+				ContactsCache.CacheIdentifier.Type.NAME, name );
 			if( cache_identifier != null ) {
 				cache.addLookup( cache_identifier, id );
 

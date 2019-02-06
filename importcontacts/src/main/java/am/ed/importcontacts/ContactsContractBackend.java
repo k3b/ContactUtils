@@ -26,7 +26,9 @@ package am.ed.importcontacts;
 import java.util.HashMap;
 import java.util.HashSet;
 
-import am.ed.importcontacts.ContactsCache.CacheIdentifier;
+import de.k3b.contactlib.ContactData;
+import de.k3b.contactlib.ContactsCache.CacheIdentifier;
+import de.k3b.contactlib.ContactsCache;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
