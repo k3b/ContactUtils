@@ -1,5 +1,5 @@
 /*
- * Intro.java
+ * MergeActivity.java
  *
  * Copyright (C) 2009 Tim Marston <tim@ed.am>
  *
@@ -23,32 +23,48 @@
 
 package am.ed.importcontacts;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
+import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.text.util.Linkify;
-import android.widget.TextView;
+import android.widget.RadioGroup;
 
-public class Intro extends WizardActivity {
-
+public class MergeActivity extends WizardActivity
+{
 	@Override
 	protected void onCreate( Bundle saved_instance_state )
 	{
-		setContentView( R.layout.intro );
+		setContentView( R.layout.merge );
 		super.onCreate( saved_instance_state );
 
-		setNextActivity( ConfigureVCF.class );
-
-		TextView link = (TextView)findViewById( R.id.intro_link );
-		Linkify.addLinks( link,
-			Pattern.compile( "The Import Contacts webpage" ),
-			"", null, new Linkify.TransformFilter() {
-				public String transformUrl( Matcher match, String url ) {
-					return "http://ed.am/dev/android/import-contacts";
-				}
-			}
-		);
+		setNextActivity( ImportActivity.class );
 	}
+
+	@Override
+	protected void onPause()
+	{
+		super.onPause();
+
+		SharedPreferences.Editor editor = getSharedPreferences().edit();
+
+		// radio button selection
+		RadioGroup rg = (RadioGroup)findViewById( R.id.merge_setting );
+		editor.putInt( "merge_setting",
+			ImportActivity.convertIdToAction( rg.getCheckedRadioButtonId() ) );
+
+		editor.commit();
+	}
+
+	@Override
+	protected void onResume()
+	{
+		super.onResume();
+
+		SharedPreferences prefs = getSharedPreferences();
+
+		// radio button selection
+		RadioGroup rg = (RadioGroup)findViewById( R.id.merge_setting );
+		rg.check( ImportActivity.convertActionToId(
+			prefs.getInt( "merge_setting", ImportActivity.ACTION_PROMPT ) ) );
+	}
+
 
 }

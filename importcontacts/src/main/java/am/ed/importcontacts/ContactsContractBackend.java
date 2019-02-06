@@ -27,7 +27,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 
 import am.ed.importcontacts.ContactsCache.CacheIdentifier;
-import am.ed.importcontacts.Importer.ContactData;
+
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.ContentUris;
@@ -464,7 +464,7 @@ public class ContactsContractBackend implements Backend
 
 	@Override
 	public void addContactPhone( Long id, String number,
-		ContactData.PreferredDetail data ) throws ContactCreationException
+		ContactData.NumberDetail data ) throws ContactCreationException
 	{
 		ContentValues values = new ContentValues();
 		values.put( ContactsContract.Data.RAW_CONTACT_ID,
@@ -484,7 +484,7 @@ public class ContactsContractBackend implements Backend
 
 	@Override
 	public void addContactEmail( Long id, String email,
-		ContactData.PreferredDetail data ) throws ContactCreationException
+		ContactData.EmailDetail data ) throws ContactCreationException
 	{
 		ContentValues values = new ContentValues();
 		values.put( ContactsContract.Data.RAW_CONTACT_ID,
@@ -504,7 +504,7 @@ public class ContactsContractBackend implements Backend
 
 	@Override
 	public void addContactAddresses( Long id, String address,
-		ContactData.TypeDetail data ) throws ContactCreationException
+		ContactData.AddressDetail data ) throws ContactCreationException
 	{
 		ContentValues values = new ContentValues();
 		values.put( ContactsContract.Data.RAW_CONTACT_ID,
@@ -523,7 +523,7 @@ public class ContactsContractBackend implements Backend
 
 	@Override
 	public void addContactOrganisation( Long id, String organisation,
-		ContactData.ExtraDetail data ) throws ContactCreationException
+		ContactData.OrganisationDetail data ) throws ContactCreationException
 	{
 		ContentValues values = new ContentValues();
 		values.put( ContactsContract.Data.RAW_CONTACT_ID,

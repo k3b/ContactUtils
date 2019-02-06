@@ -1,5 +1,5 @@
 /*
- * Importer.java
+ * ImporterThread.java
  *
  * Copyright (C) 2009 to 2013 Tim Marston <tim@ed.am>
  *
@@ -23,20 +23,17 @@
 
 package am.ed.importcontacts;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import am.ed.importcontacts.Backend.ContactCreationException;
 import android.content.SharedPreferences;
 import android.os.Message;
 
-public class Importer extends Thread
+public class ImporterThread extends Thread
 {
 	public final static int ACTION_ABORT = 1;
 	public final static int ACTION_ALLDONE = 2;
@@ -47,7 +44,7 @@ public class Importer extends Thread
 	public final static int RESPONSEEXTRA_NONE = 0;
 	public final static int RESPONSEEXTRA_ALWAYS = 1;
 
-	private Doit _doit;
+	private ImportActivity _importActivity;
 	private int _response;
 	private int _response_extra;
 	private int _merge_setting;
@@ -57,398 +54,15 @@ public class Importer extends Thread
 	private ContactsCache _contacts_cache = null;
 	private Backend _backend = null;
 
-	/**
-	 * Data about a contact
-	 */
-	public class ContactData
-	{
-		public final static int TYPE_HOME = 0;
-		public final static int TYPE_WORK = 1;
-		public final static int TYPE_MOBILE = 2;	// only used with phones
-		public final static int TYPE_FAX_HOME = 3;	// only used with phones
-		public final static int TYPE_FAX_WORK = 4;	// only used with phones
-		public final static int TYPE_PAGER = 5;		// only used with phones
-
-		class TypeDetail
-		{
-			protected int _type;
-
-			public TypeDetail( int type )
-			{
-				_type = type;
-			}
-
-			public int getType()
-			{
-				return _type;
-			}
-		}
-
-		class PreferredDetail extends TypeDetail
-		{
-			protected boolean _is_preferred;
-
-			public PreferredDetail( int type, boolean is_preferred )
-			{
-				super( type );
-				_is_preferred = is_preferred;
-			}
-
-			public boolean isPreferred()
-			{
-				return _is_preferred;
-			}
-		}
-
-		class ExtraDetail extends PreferredDetail
-		{
-			protected String _extra;
-
-			public ExtraDetail( int type, boolean is_preferred, String extra )
-			{
-				super( type, is_preferred );
-
-				if( extra != null ) extra = extra.trim();
-				_extra = extra;
-			}
-
-			public String getExtra()
-			{
-				return _extra;
-			}
-
-			public void setExtra( String extra )
-			{
-				if( extra != null ) extra = extra.trim();
-				_extra = extra;
-			}
-		}
-
-		@SuppressWarnings("serial")
-		protected class ContactNotIdentifiableException extends Exception
-		{
-		}
-
-		protected String _name = null;
-		protected String _primary_organisation = null;
-		protected boolean _primary_organisation_is_preferred;
-		protected String _primary_number = null;
-		protected int _primary_number_type;
-		protected boolean _primary_number_is_preferred;
-		protected String _primary_email = null;
-		protected boolean _primary_email_is_preferred;
-		protected HashMap< String, ExtraDetail > _organisations = null;
-		protected HashMap< String, PreferredDetail > _numbers = null;
-		protected HashMap< String, PreferredDetail > _emails = null;
-		protected HashMap< String, TypeDetail > _addresses = null;
-		protected HashSet< String > _notes = null;
-		protected String _birthday = null;
-
-		private ContactsCache.CacheIdentifier _cache_identifier = null;
-
-		protected void setName( String name )
-		{
-			_name = name;
-		}
-
-		public boolean hasName()
-		{
-			return _name != null;
-		}
-
-		public String getName()
-		{
-			return _name;
-		}
-
-		protected void addOrganisation( String organisation, String title,
-			boolean is_preferred )
-		{
-			organisation = organisation.trim();
-			if( organisation.length() <= 0 )
-			{
-				// TODO: warn that an imported organisation is being ignored
-				return;
-			}
-
-			if( title != null ) {
-				title = title.trim();
-				if( title.length() <= 0 ) title = null;
-			}
-
-			// add the organisation, as non-preferred (we prefer only one
-			// organisation in finalise() after they're all imported)
-			if( _organisations == null )
-				_organisations = new HashMap< String, ExtraDetail >();
-			if( !_organisations.containsKey( organisation ) )
-				_organisations.put( organisation,
-					new ExtraDetail( 0, false, title ) );
-
-			// if this is the first organisation added, or it's a preferred
-			// organisation and the current primary organisation isn't, then
-			// record this as the primary organisation
-			if( _primary_organisation == null ||
-				( is_preferred && !_primary_organisation_is_preferred ) )
-			{
-				_primary_organisation = organisation;
-				_primary_organisation_is_preferred = is_preferred;
-			}
-		}
-
-		public boolean hasOrganisations()
-		{
-			return _organisations != null && _organisations.size() > 0;
-		}
-
-		public HashMap< String, ExtraDetail > getOrganisations()
-		{
-			return _organisations;
-		}
-
-		public boolean hasPrimaryOrganisation()
-		{
-			return _primary_organisation != null;
-		}
-
-		public String getPrimaryOrganisation()
-		{
-			return _primary_organisation;
-		}
-
-		protected void addNumber( String number, int type,
-			boolean is_preferred )
-		{
-			number = sanitisePhoneNumber( number );
-			if( number == null )
-			{
-				// TODO: warn that an imported phone number is being ignored
-				return;
-			}
-
-			// add the number, as non-preferred (we prefer only one number
-			// in finalise() after they're all imported)
-			if( _numbers == null )
-				_numbers = new HashMap< String, PreferredDetail >();
-			if( !_numbers.containsKey( number ) )
-				_numbers.put( number,
-					new PreferredDetail( type, false ) );
-
-			final Set< Integer > non_voice_types = new HashSet< Integer >(
-				Arrays.asList( TYPE_FAX_HOME, TYPE_FAX_WORK, TYPE_PAGER ) );
-
-			// if this is the first number added, or it's a preferred number
-			// and the current primary number isn't, or this number is on equal
-			// standing with the primary number in terms of preference and it is
-			// a voice number and the primary number isn't, then record this as
-			// the primary number
-			if( _primary_number == null ||
-				( is_preferred && !_primary_number_is_preferred ) ||
-				( is_preferred == _primary_number_is_preferred &&
-					!non_voice_types.contains( type ) &&
-					non_voice_types.contains( _primary_number_type ) ) )
-			{
-				_primary_number = number;
-				_primary_number_type = type;
-				_primary_number_is_preferred = is_preferred;
-			}
-		}
-
-		public boolean hasNumbers()
-		{
-			return _numbers != null && _numbers.size() > 0;
-		}
-
-		public HashMap< String, PreferredDetail > getNumbers()
-		{
-			return _numbers;
-		}
-
-		public boolean hasPrimaryNumber()
-		{
-			return _primary_number != null;
-		}
-
-		public String getPrimaryNumber()
-		{
-			return _primary_number;
-		}
-
-		protected void addEmail( String email, int type, boolean is_preferred )
-		{
-
-			email = sanitisesEmailAddress( email );
-			if( email == null )
-			{
-				// TODO: warn that an imported email address is being ignored
-				return;
-			}
-
-			// add the email, as non-preferred (we prefer only one email in
-			// finalise() after they're all imported)
-			if( _emails == null )
-				_emails = new HashMap< String, PreferredDetail >();
-			if( !_emails.containsKey( email ) )
-				_emails.put( email, new PreferredDetail( type, false ) );
-
-			// if this is the first email added, or it's a preferred email and
-			// the current primary organisation isn't, then record this as the
-			// primary email
-			if( _primary_email == null ||
-				( is_preferred && !_primary_email_is_preferred ) )
-			{
-				_primary_email = email;
-				_primary_email_is_preferred = is_preferred;
-			}
-		}
-
-		public boolean hasEmails()
-		{
-			return _emails != null && _emails.size() > 0;
-		}
-
-		public HashMap< String, PreferredDetail > getEmails()
-		{
-			return _emails;
-		}
-
-		public boolean hasPrimaryEmail()
-		{
-			return _primary_email != null;
-		}
-
-		public String getPrimaryEmail()
-		{
-			return _primary_email;
-		}
-
-		protected void addAddress( String address, int type )
-		{
-			address = address.trim();
-			if( address.length() <= 0 )
-			{
-				// TODO: warn that an imported address is being ignored
-				return;
-			}
-
-			if( _addresses == null ) _addresses =
-				new HashMap< String, TypeDetail >();
-			if( !_addresses.containsKey( address ) )
-				_addresses.put( address, new TypeDetail( type ) );
-		}
-
-		public boolean hasAddresses()
-		{
-			return _addresses != null && _addresses.size() > 0;
-		}
-
-		public HashMap< String, TypeDetail > getAddresses()
-		{
-			return _addresses;
-		}
-
-		protected void addNote( String note )
-		{
-			if( _notes == null ) _notes = new HashSet< String >();
-			if( !_notes.contains( note ) )
-				_notes.add( note );
-		}
-
-		public boolean hasNotes()
-		{
-			return _notes != null && _notes.size() > 0;
-		}
-
-		public HashSet< String > getNotes()
-		{
-			return _notes;
-		}
-
-		public void setBirthday( String birthday )
-		{
-			_birthday = birthday;
-		}
-
-		public boolean hasBirthday()
-		{
-			return _birthday != null;
-		}
-
-		public String getBirthday()
-		{
-			return _birthday;
-		}
-
-		protected void finalise()
-			throws ContactNotIdentifiableException
-		{
-			// Ensure that if there is a primary number, it is preferred so
-			// that there is always one preferred number.  Android will assign
-			// preference to one anyway so we might as well decide one sensibly.
-			if( _primary_number != null ) {
-				PreferredDetail data = _numbers.get( _primary_number );
-				_numbers.put( _primary_number,
-					new PreferredDetail( data.getType(), true ) );
-			}
-
-			// do the same for the primary email
-			if( _primary_email != null ) {
-				PreferredDetail data = _emails.get( _primary_email );
-				_emails.put( _primary_email,
-					new PreferredDetail( data.getType(), true ) );
-			}
-
-			// do the same for the primary organisation
-			if( _primary_organisation != null ) {
-				ExtraDetail data = _organisations.get( _primary_organisation );
-				_organisations.put( _primary_organisation,
-					new ExtraDetail( 0, true, data.getExtra() ) );
-			}
-
-			// create a cache identifier from this contact data, which can be
-			// used to look-up an existing contact
-			_cache_identifier = ContactsCache.CacheIdentifier.factory( this );
-			if( _cache_identifier == null )
-				throw new ContactNotIdentifiableException();
-		}
-
-		public ContactsCache.CacheIdentifier getCacheIdentifier()
-		{
-			return _cache_identifier;
-		}
-
-		private String sanitisePhoneNumber( String number )
-		{
-			number = number.trim();
-			Pattern p = Pattern.compile( "^[-\\(\\) \\+0-9#*]+" );
-			Matcher m = p.matcher( number );
-			if( m.lookingAt() ) return m.group( 0 );
-			return null;
-		}
-
-		private String sanitisesEmailAddress( String email )
-		{
-			email = email.trim();
-			Pattern p = Pattern.compile(
-				"^[^ @]+@[a-zA-Z]([-a-zA-Z0-9]*[a-zA-z0-9])?(\\.[a-zA-Z]([-a-zA-Z0-9]*[a-zA-z0-9])?)+$" );
-			Matcher m = p.matcher( email );
-			if( m.matches() ) {
-				String[] bits = email.split( "@" );
-				return bits[ 0 ] + "@" +
-					bits[ 1 ].toLowerCase( Locale.ENGLISH );
-			}
-			return null;
-		}
-	}
-
 	@SuppressWarnings("serial")
 	protected class AbortImportException extends Exception { };
 
-	public Importer( Doit doit )
+	public ImporterThread(ImportActivity importActivity)
 	{
-		_doit = doit;
+		_importActivity = importActivity;
 
 		SharedPreferences prefs = getSharedPreferences();
-		_merge_setting = prefs.getInt( "merge_setting", Doit.ACTION_PROMPT );
+		_merge_setting = prefs.getInt( "merge_setting", ImportActivity.ACTION_PROMPT );
 	}
 
 	@Override
@@ -461,9 +75,9 @@ public class Importer extends Thread
 
 			// create the appropriate backend
 			if( Integer.parseInt( android.os.Build.VERSION.SDK ) >= 5 )
-				_backend = new ContactsContractBackend( _doit );
+				_backend = new ContactsContractBackend(_importActivity);
 			else
-				_backend = new ContactsBackend( _doit );
+				_backend = new ContactsBackend(_importActivity);
 
 			// create a cache of existing contacts and populate it
 			_contacts_cache = new ContactsCache();
@@ -520,20 +134,20 @@ public class Importer extends Thread
 
 	protected SharedPreferences getSharedPreferences()
 	{
-		return _doit.getSharedPreferences();
+		return _importActivity.getSharedPreferences();
 	}
 
 	protected void showError( int res ) throws AbortImportException
 	{
-		showError( _doit.getText( res ).toString() );
+		showError( _importActivity.getText( res ).toString() );
 	}
 
 	synchronized protected void showError( String message )
 			throws AbortImportException
 	{
 		checkAbort();
-		_doit._handler.sendMessage( Message.obtain(
-			_doit._handler, Doit.MESSAGE_ERROR, message ) );
+		_importActivity._handler.sendMessage( Message.obtain(
+			_importActivity._handler, ImportActivity.MESSAGE_ERROR, message ) );
 		try {
 			wait();
 		}
@@ -546,15 +160,15 @@ public class Importer extends Thread
 
 	protected void showContinueOrAbort( int res ) throws AbortImportException
 	{
-		showContinueOrAbort( _doit.getText( res ).toString() );
+		showContinueOrAbort( _importActivity.getText( res ).toString() );
 	}
 
 	synchronized protected void showContinueOrAbort( String message )
 			throws AbortImportException
 	{
 		checkAbort();
-		_doit._handler.sendMessage( Message.obtain(
-			_doit._handler, Doit.MESSAGE_CONTINUEORABORT, message ) );
+		_importActivity._handler.sendMessage( Message.obtain(
+			_importActivity._handler, ImportActivity.MESSAGE_CONTINUEORABORT, message ) );
 		try {
 			wait();
 		}
@@ -571,16 +185,16 @@ public class Importer extends Thread
 	protected void setProgressMessage( int res ) throws AbortImportException
 	{
 		checkAbort();
-		_doit._handler.sendMessage( Message.obtain( _doit._handler,
-			Doit.MESSAGE_SETPROGRESSMESSAGE, getText( res ) ) );
+		_importActivity._handler.sendMessage( Message.obtain( _importActivity._handler,
+			ImportActivity.MESSAGE_SETPROGRESSMESSAGE, getText( res ) ) );
 	}
 
 	protected void setProgressMax( int max_progress )
 			throws AbortImportException
 	{
 		checkAbort();
-		_doit._handler.sendMessage( Message.obtain(
-			_doit._handler, Doit.MESSAGE_SETMAXPROGRESS,
+		_importActivity._handler.sendMessage( Message.obtain(
+			_importActivity._handler, ImportActivity.MESSAGE_SETMAXPROGRESS,
 			Integer.valueOf( max_progress ) ) );
 	}
 
@@ -588,16 +202,16 @@ public class Importer extends Thread
 		throws AbortImportException
 	{
 		checkAbort();
-		_doit._handler.sendMessage( Message.obtain(
-			_doit._handler, Doit.MESSAGE_SETTMPPROGRESS,
+		_importActivity._handler.sendMessage( Message.obtain(
+			_importActivity._handler, ImportActivity.MESSAGE_SETTMPPROGRESS,
 			Integer.valueOf( tmp_progress ) ) );
 	}
 
 	protected void setProgress( int progress ) throws AbortImportException
 	{
 		checkAbort();
-		_doit._handler.sendMessage( Message.obtain(
-			_doit._handler, Doit.MESSAGE_SETPROGRESS,
+		_importActivity._handler.sendMessage( Message.obtain(
+			_importActivity._handler, ImportActivity.MESSAGE_SETPROGRESS,
 			Integer.valueOf( progress ) ) );
 	}
 
@@ -607,11 +221,11 @@ public class Importer extends Thread
 		int message;
 		switch( action )
 		{
-		case ACTION_ALLDONE:	message = Doit.MESSAGE_ALLDONE; break;
+		case ACTION_ALLDONE:	message = ImportActivity.MESSAGE_ALLDONE; break;
 		default:	// fall through
-		case ACTION_ABORT:		message = Doit.MESSAGE_ABORT; break;
+		case ACTION_ABORT:		message = ImportActivity.MESSAGE_ABORT; break;
 		}
-		_doit._handler.sendEmptyMessage( message );
+		_importActivity._handler.sendEmptyMessage( message );
 
 		// stop
 		throw new AbortImportException();
@@ -619,7 +233,7 @@ public class Importer extends Thread
 
 	protected CharSequence getText( int res )
 	{
-		return _doit.getText( res );
+		return _importActivity.getText( res );
 	}
 
 	/**
@@ -640,18 +254,18 @@ public class Importer extends Thread
 		// handle special cases
 		switch( merge_setting )
 		{
-		case Doit.ACTION_KEEP:
+		case ImportActivity.ACTION_KEEP:
 			// if we are skipping on a duplicate, check for one
 			return exists;
 
-		case Doit.ACTION_PROMPT:
+		case ImportActivity.ACTION_PROMPT:
 			// if we are prompting on duplicate, then we can say that we won't
 			// skip if there isn't one
 			if( !exists ) return false;
 
 			// ok, duplicate exists, so do prompt
-			_doit._handler.sendMessage( Message.obtain( _doit._handler,
-				Doit.MESSAGE_MERGEPROMPT, contact_detail ) );
+			_importActivity._handler.sendMessage( Message.obtain( _importActivity._handler,
+				ImportActivity.MESSAGE_MERGEPROMPT, contact_detail ) );
 			try {
 				wait();
 			}
@@ -677,7 +291,7 @@ public class Importer extends Thread
 		checkAbort();
 
 		// show that we're skipping a new contact
-		_doit._handler.sendEmptyMessage( Doit.MESSAGE_CONTACTSKIPPED );
+		_importActivity._handler.sendEmptyMessage( ImportActivity.MESSAGE_CONTACTSKIPPED );
 	}
 
 	protected void importContact( ContactData contact )
@@ -703,14 +317,14 @@ public class Importer extends Thread
 			_merge_setting ) )
 		{
 			// show that we're skipping a contact
-			_doit._handler.sendEmptyMessage( Doit.MESSAGE_CONTACTSKIPPED );
+			_importActivity._handler.sendEmptyMessage( ImportActivity.MESSAGE_CONTACTSKIPPED );
 			return;
 		}
 
 		// if a contact exists, and we're overwriting, destroy the existing
 		// contact before importing
 		boolean contact_deleted = false;
-		if( id != null && _last_merge_decision == Doit.ACTION_OVERWRITE )
+		if( id != null && _last_merge_decision == ImportActivity.ACTION_OVERWRITE )
 		{
 			contact_deleted = true;
 
@@ -722,7 +336,7 @@ public class Importer extends Thread
 			_contacts_cache.removeAssociatedData( id );
 
 			// show that we're overwriting a contact
-			_doit._handler.sendEmptyMessage( Doit.MESSAGE_CONTACTOVERWRITTEN );
+			_importActivity._handler.sendEmptyMessage( ImportActivity.MESSAGE_CONTACTOVERWRITTEN );
 
 			// discard the contact id
 			id = null;
@@ -742,12 +356,12 @@ public class Importer extends Thread
 				// if we haven't already shown that we're overwriting a contact,
 				// show that we're creating a new contact
 				if( !contact_deleted )
-					_doit._handler.sendEmptyMessage(
-						Doit.MESSAGE_CONTACTCREATED );
+					_importActivity._handler.sendEmptyMessage(
+						ImportActivity.MESSAGE_CONTACTCREATED );
 			}
 			else
 				// show that we're merging with an existing contact
-				_doit._handler.sendEmptyMessage( Doit.MESSAGE_CONTACTMERGED );
+				_importActivity._handler.sendEmptyMessage( ImportActivity.MESSAGE_CONTACTMERGED );
 
 			// import contact parts
 			if( contact.hasNumbers() )
@@ -770,7 +384,7 @@ public class Importer extends Thread
 	}
 
 	private void importContactPhones( Long id,
-		HashMap< String, ContactData.PreferredDetail > datas )
+		Map< String, ContactData.NumberDetail > datas )
 		throws ContactCreationException
 	{
 		// add phone numbers
@@ -778,7 +392,7 @@ public class Importer extends Thread
 		Iterator< String > i = datas_keys.iterator();
 		while( i.hasNext() ) {
 			String number = i.next();
-			ContactData.PreferredDetail data = datas.get( number );
+			ContactData.NumberDetail data = datas.get( number );
 
 			// We don't want to add this number if it's crap, or it already
 			// exists (which would cause a duplicate to be created).  We don't
@@ -800,7 +414,7 @@ public class Importer extends Thread
 	}
 
 	private void importContactEmails( Long id,
-		HashMap< String, ContactData.PreferredDetail > datas )
+		Map< String, ContactData.EmailDetail > datas )
 		throws ContactCreationException
 	{
 		// add email addresses
@@ -808,7 +422,7 @@ public class Importer extends Thread
 		Iterator< String > i = datas_keys.iterator();
 		while( i.hasNext() ) {
 			String email = i.next();
-			ContactData.PreferredDetail data = datas.get( email );
+			ContactData.EmailDetail data = datas.get( email );
 
 			// we don't want to add this email address if it exists already or
 			// we would introduce duplicates
@@ -825,7 +439,7 @@ public class Importer extends Thread
 	}
 
 	private void importContactAddresses( Long id,
-		HashMap< String, ContactData.TypeDetail > datas )
+		Map< String, ContactData.AddressDetail > datas )
 		throws ContactCreationException
 	{
 		// add addresses
@@ -833,7 +447,7 @@ public class Importer extends Thread
 		Iterator< String > i = datas_keys.iterator();
 		while( i.hasNext() ) {
 			String address = i.next();
-			ContactData.TypeDetail data = datas.get( address );
+			ContactData.AddressDetail data = datas.get( address );
 
 			// we don't want to add this address if it exists already or we
 			// would introduce duplicates
@@ -850,7 +464,7 @@ public class Importer extends Thread
 	}
 
 	private void importContactOrganisations( Long id,
-		HashMap< String, ContactData.ExtraDetail > datas )
+		Map< String, ContactData.OrganisationDetail > datas )
 		throws ContactCreationException
 	{
 		// add addresses
@@ -858,7 +472,7 @@ public class Importer extends Thread
 		Iterator< String > i = datas_keys.iterator();
 		while( i.hasNext() ) {
 			String organisation = i.next();
-			ContactData.ExtraDetail data = datas.get( organisation );
+			ContactData.OrganisationDetail data = datas.get( organisation );
 
 			// we don't want to add this address if it exists already or we
 			// would introduce duplicates

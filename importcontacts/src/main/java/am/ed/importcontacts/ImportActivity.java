@@ -1,5 +1,5 @@
 /*
- * Doit.java
+ * ImportActivity.java
  *
  * Copyright (C) 2009 Tim Marston <tim@ed.am>
  *
@@ -40,7 +40,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class Doit extends WizardActivity
+public class ImportActivity extends WizardActivity
 {
 	private final static int DIALOG_ERROR = 0;
 	private final static int DIALOG_CONTINUEORABORT = 1;
@@ -83,7 +83,7 @@ public class Doit extends WizardActivity
 	private int _count_merges;
 	private int _count_skips;
 
-	protected Importer _importer = null;
+	protected ImporterThread _importerThread = null;
 
 	public Handler _handler;
 
@@ -220,8 +220,8 @@ public class Doit extends WizardActivity
 						public void onClick( DialogInterface dialog,
 							int whichButton )
 						{
-							if( Doit.this != null )
-								Doit.this._importer.wake();
+							if( ImportActivity.this != null )
+								ImportActivity.this._importerThread.wake();
 						}
 					} )
 				.setOnCancelListener( _dialog_on_cancel_listener )
@@ -236,9 +236,9 @@ public class Doit extends WizardActivity
 						public void onClick( DialogInterface dialog,
 							int which_button )
 						{
-							if( Doit.this != null )
-								Doit.this._importer.wake(
-									Importer.RESPONSE_POSITIVE );
+							if( ImportActivity.this != null )
+								ImportActivity.this._importerThread.wake(
+									ImporterThread.RESPONSE_POSITIVE );
 						}
 					} )
 				.setNegativeButton( R.string.error_abort,
@@ -246,9 +246,9 @@ public class Doit extends WizardActivity
 						public void onClick( DialogInterface dialog,
 							int which_button )
 						{
-							if( Doit.this != null )
-								Doit.this._importer.wake(
-									Importer.RESPONSE_NEGATIVE );
+							if( ImportActivity.this != null )
+								ImportActivity.this._importerThread.wake(
+									ImporterThread.RESPONSE_NEGATIVE );
 						}
 					} )
 				.setOnCancelListener( _dialog_on_cancel_listener )
@@ -264,8 +264,8 @@ public class Doit extends WizardActivity
 						public void onCheckedChanged(
 							CompoundButton button_view, boolean is_checked )
 						{
-							if( Doit.this != null )
-								Doit.this._merge_prompt_always_selected =
+							if( ImportActivity.this != null )
+								ImportActivity.this._merge_prompt_always_selected =
 									is_checked;
 						}
 					} );
@@ -293,23 +293,23 @@ public class Doit extends WizardActivity
 	{
 		public void onClick( View view )
 		{
-			if( Doit.this == null ) return;
+			if( ImportActivity.this == null ) return;
 
 			// handle abort
 			if( view.getId() == R.id.abort )
 				manualAbort();
 
 			// else, response (just check we haven't aborted already!)
-			else if( Doit.this._importer != null ) {
+			else if( ImportActivity.this._importerThread != null ) {
 				int response_extra = _merge_prompt_always_selected?
-					Importer.RESPONSEEXTRA_ALWAYS : Importer.RESPONSEEXTRA_NONE;
-				Doit.this._importer.wake( convertIdToAction( view.getId() ),
+					ImporterThread.RESPONSEEXTRA_ALWAYS : ImporterThread.RESPONSEEXTRA_NONE;
+				ImportActivity.this._importerThread.wake( convertIdToAction( view.getId() ),
 					response_extra );
 			}
 
 			// close dialog and free (don't keep a reference)
-			Doit.this._merge_prompt_dialog.dismiss();
-			Doit.this._merge_prompt_dialog = null;
+			ImportActivity.this._merge_prompt_dialog.dismiss();
+			ImportActivity.this._merge_prompt_dialog = null;
 		}
 	};
 
@@ -438,10 +438,10 @@ public class Doit extends WizardActivity
 		( (Button)findViewById( R.id.back ) ).setEnabled( false );
 
 		// create importer
-		_importer = new VcardImporter( this );
+		_importerThread = new VcardImporterThread( this );
 
 		// start the service's thread
-		_importer.start();
+		_importerThread.start();
 	}
 
 	private void updateProgress()
@@ -478,15 +478,15 @@ public class Doit extends WizardActivity
 
 	private void abortImport( boolean show_toaster_popup )
 	{
-		if( _importer != null )
+		if( _importerThread != null )
 		{
 			// try and flag worker thread - did we need to?
-			if( _importer.setAbort() )
+			if( _importerThread.setAbort() )
 			{
 				// wait for worker thread to end
 				while( true ) {
 					try {
-						_importer.join();
+						_importerThread.join();
 						break;
 					}
 					catch( InterruptedException e ) {}
@@ -500,7 +500,7 @@ public class Doit extends WizardActivity
 		}
 
 		// destroy some stuff
-		_importer = null;
+		_importerThread = null;
 		_handler = null;
 	}
 }

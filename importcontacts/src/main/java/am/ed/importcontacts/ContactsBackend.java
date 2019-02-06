@@ -28,7 +28,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 
 import am.ed.importcontacts.ContactsCache.CacheIdentifier;
-import am.ed.importcontacts.Importer.ContactData;
+
 import android.app.Activity;
 import android.content.ContentUris;
 import android.content.ContentValues;
@@ -287,7 +287,7 @@ public class ContactsBackend implements Backend
 
 	@Override
 	public void addContactPhone( Long id, String number,
-		ContactData.PreferredDetail data ) throws ContactCreationException
+		ContactData.NumberDetail data ) throws ContactCreationException
 	{
 		Uri contact_phones_uri = Uri.withAppendedPath(
 			ContentUris.withAppendedId( Contacts.People.CONTENT_URI, id ),
@@ -306,7 +306,7 @@ public class ContactsBackend implements Backend
 
 	@Override
 	public void addContactEmail( Long id, String email,
-		ContactData.PreferredDetail data ) throws ContactCreationException
+		ContactData.EmailDetail data ) throws ContactCreationException
 	{
 		Uri contact_contact_methods_uri = Uri.withAppendedPath(
 			ContentUris.withAppendedId( Contacts.People.CONTENT_URI, id ),
@@ -327,7 +327,7 @@ public class ContactsBackend implements Backend
 
 	@Override
 	public void addContactAddresses( Long id, String address,
-		ContactData.TypeDetail data ) throws ContactCreationException
+		ContactData.AddressDetail data ) throws ContactCreationException
 	{
 		Uri contact_contact_methods_uri = Uri.withAppendedPath(
 			ContentUris.withAppendedId( Contacts.People.CONTENT_URI, id ),
@@ -346,7 +346,7 @@ public class ContactsBackend implements Backend
 
 	@Override
 	public void addContactOrganisation( Long id, String organisation,
-		ContactData.ExtraDetail data ) throws ContactCreationException
+		ContactData.OrganisationDetail data ) throws ContactCreationException
 	{
 		ContentValues values = new ContentValues();
 		values.put( Contacts.Organizations.PERSON_ID, id );

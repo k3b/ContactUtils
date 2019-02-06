@@ -72,7 +72,7 @@ public class ContactsCache
 		 * @param contact the contact data
 		 * @return the cache identifier, or null
 		 */
-		public static CacheIdentifier factory( Importer.ContactData contact )
+		public static CacheIdentifier factory( ContactData contact )
 		{
 			CacheIdentifier identifier = null;
 

@@ -23,8 +23,6 @@
 
 package am.ed.importcontacts;
 
-import am.ed.importcontacts.Importer.ContactData;
-
 public interface Backend
 {
 	/**
@@ -62,7 +60,7 @@ public interface Backend
 	 * @throws ContactCreationException
 	 */
 	public void addContactPhone( Long id, String number,
-		ContactData.PreferredDetail data ) throws ContactCreationException;
+		ContactData.NumberDetail data ) throws ContactCreationException;
 
 	/**
 	 * Add an email address to an existing contact on the device.
@@ -73,7 +71,7 @@ public interface Backend
 	 * @throws ContactCreationException
 	 */
 	public void addContactEmail( Long id, String email,
-		ContactData.PreferredDetail data ) throws ContactCreationException;
+		ContactData.EmailDetail data ) throws ContactCreationException;
 
 	/**
 	 * Add an address to an existing contact on the device.
@@ -84,7 +82,7 @@ public interface Backend
 	 * @throws ContactCreationException
 	 */
 	public void addContactAddresses( Long id, String address,
-		ContactData.TypeDetail data ) throws ContactCreationException;
+		ContactData.AddressDetail data ) throws ContactCreationException;
 
 	/**
 	 * Add a title and organisation to an existing contact on the device.
@@ -95,7 +93,7 @@ public interface Backend
 	 * @throws ContactCreationException
 	 */
 	public void addContactOrganisation( Long id, String organisation,
-		ContactData.ExtraDetail data ) throws ContactCreationException;
+		ContactData.OrganisationDetail data ) throws ContactCreationException;
 
 	/**
 	 * Add a note to an existing contact on the device.

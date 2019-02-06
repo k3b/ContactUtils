@@ -36,7 +36,7 @@
     <application android:icon="@drawable/icon"
         android:label="@string/app_name">
 
-        <activity android:name=".Intro"
+        <activity android:name=".IntroActivity"
             android:label="@string/app_name"
             android:configChanges="keyboardHidden|orientation">
             <intent-filter>
@@ -44,11 +44,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".ConfigureVCF"
+        <activity android:name=".ConfigureVCFactivity"
             android:configChanges="keyboardHidden|orientation" />
-        <activity android:name=".Merge"
+        <activity android:name=".MergeActivity"
             android:configChanges="keyboardHidden|orientation" />
-        <activity android:name=".Doit"
+        <activity android:name=".ImportActivity"
             android:configChanges="keyboardHidden|orientation" />
 
     </application>

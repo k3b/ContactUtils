@@ -39,6 +39,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.Vector;
@@ -48,14 +49,14 @@ import java.util.regex.Pattern;
 import android.content.SharedPreferences;
 import android.os.Environment;
 
-public class VcardImporter extends Importer
+public class VcardImporterThread extends ImporterThread
 {
 	private int _vcard_count = 0;
 	private int _progress = 0;
 
-	public VcardImporter( Doit doit )
+	public VcardImporterThread(ImportActivity importActivity)
 	{
-		super( doit );
+		super(importActivity);
 	}
 
 	@Override
@@ -461,7 +462,7 @@ public class VcardImporter extends Importer
 
 			public ParseException( int res )
 			{
-				super( VcardImporter.this.getText( res ).toString() );
+				super( VcardImporterThread.this.getText( res ).toString() );
 			}
 		}
 
@@ -905,8 +906,8 @@ public class VcardImporter extends Importer
 			// if we previously had an organisation, look it up and append this
 			// title to it
 			if( _cached_organisation != null && hasOrganisations() ) {
-				HashMap< String, ExtraDetail > datas = getOrganisations();
-				ExtraDetail detail = datas.get( _cached_organisation );
+				Map< String, OrganisationDetail > datas = getOrganisations();
+				OrganisationDetail detail = datas.get( _cached_organisation );
 				if( detail != null )
 					detail.setExtra( value );
 			}

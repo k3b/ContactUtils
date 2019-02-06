@@ -1,5 +1,5 @@
 /*
- * ConfigureVCF.java
+ * ConfigureVCFactivity.java
  *
  * Copyright (C) 2009 Tim Marston <tim@ed.am>
  *
@@ -36,7 +36,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
-public class ConfigureVCF extends WizardActivity
+public class ConfigureVCFactivity extends WizardActivity
 {
 	public final static int DIALOG_FILEORDIR = 1;
 	public final static int DIALOG_FILECHOOSER = 2;
@@ -65,7 +65,7 @@ public class ConfigureVCF extends WizardActivity
 		setContentView( R.layout.configure_vcf );
 		super.onCreate( saved_instance_state );
 
-		setNextActivity( Merge.class );
+		setNextActivity( MergeActivity.class );
 
 		// get sdcard prefix
 		_sdcard_prefix = getSdCardPathPrefix();
