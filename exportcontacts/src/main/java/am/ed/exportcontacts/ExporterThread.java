@@ -28,6 +28,8 @@ import de.k3b.android.contactlib.ConatactsReaderAndroid3Impl;
 import de.k3b.android.contactlib.ConatactsReaderAndroid5Impl;
 import android.os.Message;
 
+import java.io.IOException;
+
 import de.k3b.contactlib.ContactData;
 import de.k3b.contactlib.IConatactsReader;
 
@@ -86,42 +88,55 @@ public class ExporterThread extends Thread
 	{
 		// set up a contact reader
 		IConatactsReader conatactsReader = null;
-		if( Integer.parseInt( android.os.Build.VERSION.SDK ) >= 5 )
-			conatactsReader = new ConatactsReaderAndroid5Impl( _doExportActivity.getContentResolver());
-		else
-			conatactsReader = new ConatactsReaderAndroid3Impl(_doExportActivity.getContentResolver());
 
-		// check we have contacts
-		int num_contacts = conatactsReader.getNumContacts();
-		if( num_contacts == 0 )
-			showError( R.string.error_nothingtodo );
+		try {
 
-		// count the number of contacts and set the progress bar max
-		setProgress( 0 );
-		setProgressMax( num_contacts );
 
-		checkAbort();
-		preExport();
-
-		// loop through contacts
-		int count = 0;
-		while( true ) {
-			checkAbort();
-			ContactData contact = new ContactData();
-			if( !conatactsReader.getNextContact( contact ) )
-				break;
-
-			// export this one
-			checkAbort();
-			if( exportContact( contact ) )
-				_doExportActivity._handler.sendEmptyMessage( DoExportActivity.MESSAGE_CONTACTWRITTEN );
+			if (Integer.parseInt(android.os.Build.VERSION.SDK) >= 5)
+				conatactsReader = new ConatactsReaderAndroid5Impl(_doExportActivity.getContentResolver());
 			else
-				_doExportActivity._handler.sendEmptyMessage( DoExportActivity.MESSAGE_CONTACTSKIPPED );
-			setProgress( count++ );
-		}
-		setProgress( num_contacts );
+				conatactsReader = new ConatactsReaderAndroid3Impl(_doExportActivity.getContentResolver());
 
-		postExport();
+			// check we have contacts
+			int num_contacts = conatactsReader.getNumContacts();
+			if (num_contacts == 0)
+				showError(R.string.error_nothingtodo);
+
+			// count the number of contacts and set the progress bar max
+			setProgress(0);
+			setProgressMax(num_contacts);
+
+			checkAbort();
+			preExport();
+
+			// loop through contacts
+			int count = 0;
+			while (true) {
+				checkAbort();
+				ContactData contact = new ContactData();
+				if (!conatactsReader.getNextContact(contact))
+					break;
+
+				// export this one
+				checkAbort();
+				if (exportContact(contact))
+					_doExportActivity._handler.sendEmptyMessage(DoExportActivity.MESSAGE_CONTACTWRITTEN);
+				else
+					_doExportActivity._handler.sendEmptyMessage(DoExportActivity.MESSAGE_CONTACTSKIPPED);
+				setProgress(count++);
+			}
+			setProgress(num_contacts);
+
+			postExport();
+		} finally {
+			if (conatactsReader != null) {
+				try {
+					conatactsReader.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 	}
 
 	public void wake()

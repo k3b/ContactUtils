@@ -102,24 +102,30 @@ public class ContactData
         }
     }
 
+    protected long _id = 0;
     protected String _name = null;
     protected ArrayList< OrganisationDetail > _organisations = null;
     protected ArrayList<NumberDetail> _numbers = null;
     protected ArrayList<EmailDetail> _emails = null;
     protected ArrayList<AddressDetail> _addresses = null;
     protected ArrayList< String > _notes = null;
+    protected ArrayList< String > _groups = null;
+
     protected String _birthday = null;
+
+    public void setId( long id )
+    {
+        _id = id;
+    }
+
+    public long getId()
+    {
+        return _id;
+    }
 
     public void setName( String name )
     {
         _name = getValueOrNull(name);
-    }
-
-    /**
-     * @return null if value.len is 0
-     */
-    private static String getValueOrNull(String value) {
-        return value != null && value.length() > 0? value : null;
     }
 
     public String getName()
@@ -191,6 +197,20 @@ public class ContactData
         return _notes;
     }
 
+    public void addGroup( String group ) {
+        if (group != null) {
+            if (_groups == null)
+                _groups = new ArrayList<String>();
+            _groups.add(group);
+        }
+    }
+
+    public ArrayList< String > getGroups()
+    {
+        return _groups;
+    }
+
+
     public void setBirthday( String birthday )
     {
         _birthday = birthday;
@@ -224,5 +244,18 @@ public class ContactData
 
         // no primary identifier
         return null;
+    }
+
+    /**
+     * @return null if value.len is 0
+     */
+    private static String getValueOrNull(String value) {
+        return value != null && value.length() > 0? value : null;
+    }
+
+    @Override
+    public String toString() {
+        return this.getClass().getSimpleName()+"#" + getId() +
+                ":"  + getPrimaryIdentifier();
     }
 }

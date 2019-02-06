@@ -28,6 +28,8 @@ import android.content.ContentResolver;
 import android.database.Cursor;
 import android.provider.Contacts;
 
+import java.io.IOException;
+
 import de.k3b.contactlib.ContactData;
 import de.k3b.contactlib.IConatactsReader;
 
@@ -201,4 +203,10 @@ public class ConatactsReaderAndroid3Impl implements IConatactsReader
 
 		return true;
 	}
+
+    @Override
+    public void close() throws IOException {
+        if (_cur !=  null)  _cur.close();
+        _cur = null;
+    }
 }

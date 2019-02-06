@@ -23,9 +23,11 @@
 
 package de.k3b.contactlib;
 
+import java.io.Closeable;
+
 import de.k3b.contactlib.ContactData;
 
-public interface IConatactsReader
+public interface IConatactsReader  extends Closeable
 {
 	/**
 	 * Return the number of contacts that exist and that will be exported.

@@ -1,6 +1,5 @@
 package de.k3b.contactlib;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.AbstractCollection;
@@ -161,14 +160,11 @@ public class VcardWriter implements IContactsWriter {
         String identifier = contact.getPrimaryIdentifier();
         if( identifier != null ) identifier = identifier.trim();
         if( identifier == null || identifier.length() == 0 ) {
+            // skip if the contact has no identifiable features
             return false;
         }
 
         StringBuilder out = new StringBuilder();
-
-        // skip if the contact has no identifiable features
-        if( contact.getPrimaryIdentifier() == null )
-            return false;
 
         // append newline
         if( _first_contact )
@@ -183,36 +179,71 @@ public class VcardWriter implements IContactsWriter {
         out.append( fold( "FN:" + escape( identifier ) ) + "\n" );
 
         // append name
-        String name = contact.getName();
-        if( name == null ) name = "";
-        String[] bits = name.split( " +" );
-        StringBuilder tmp = new StringBuilder();
-        for( int a = 1; a < bits.length - 1; a++ ) {
-            if( a > 1 ) tmp.append( " " );
-            tmp.append( escape( bits[ a ] ) );
-        }
-        String value = escape( bits[ bits.length - 1 ] ) + ";" +
-                ( bits.length > 1? escape( bits[ 0 ] ) : "" ) + ";" +
-                tmp.toString() + ";;";
-        out.append( fold( "N:" + value ) + "\n" );
+        appendName(out, contact.getName());
 
         // append organisations and titles
-        ArrayList< ContactData.OrganisationDetail > organisations =
-                contact.getOrganisations();
-        if( organisations != null ) {
-            for( int a = 0; a < organisations.size(); a++ ) {
-                if( organisations.get( a ).getOrganisation() != null )
-                    out.append( fold( "ORG:" + escape(
-                            organisations.get( a ).getOrganisation() ) ) + "\n" );
-                if( organisations.get( a ).getTitle() != null )
-                    out.append( fold( "TITLE:" + escape(
-                            organisations.get( a ).getTitle() ) ) + "\n" );
-            }
-        }
+        appendOrganisationsAndTitles(out, contact.getOrganisations());
 
         // append phone numbers
-        ArrayList< ContactData.NumberDetail > numbers =
-                contact.getNumbers();
+        appendPhoneNumbers(out, contact.getNumbers());
+
+        // append email addresses
+        ArrayList< ContactData.EmailDetail > emails =
+                contact.getEmails();
+        appendEmailAddresses(out, emails);
+
+        // append addresses
+        appendAdresses(out, contact.getAddresses());
+
+        // append notes
+        appendLists(out, "NOTE:", contact.getNotes());
+
+        if (LibContactGlobal.groupsEnabled) {
+            appendLists(out, "X-GROUPS:", contact.getGroups());
+        }
+
+        // append birthday
+        appendBirthday(out, contact.getBirthday());
+
+        // append footer
+        out.append( "END:VCARD\n" );
+
+        // replace '\n' with "\r\n" (spec requires CRLF)
+        int pos = 0;
+        while( true ) {
+            pos = out.indexOf( "\n", pos );
+            if( pos == -1 ) break;
+            out.replace( pos, pos + 1, "\r\n" );
+
+            // skip our inserted string
+            pos += 2;
+        }
+
+        // write to file
+        writeToFile( out.toString().getBytes(), identifier );
+
+        return true;
+    }
+
+    private void appendEmailAddresses(StringBuilder out, ArrayList<ContactData.EmailDetail> emails) {
+        if( emails != null ) {
+            for( int a = 0; a < emails.size(); a++ ) {
+                ArrayList< String > types = new ArrayList< String >();
+                types.add( "INTERNET" );
+                switch( emails.get( a ).getType() ) {
+                    case ContactData.TYPE_HOME:
+                        types.add( "HOME" ); break;
+                    case ContactData.TYPE_WORK:
+                        types.add( "WORK" ); break;
+                }
+                out.append( fold( "EMAIL" +
+                        ( types.size() > 0? ";TYPE=" + join( types, "," ) : "" ) +
+                        ":" + escape( emails.get( a ).getEmail() ) ) + "\n" );
+            }
+        }
+    }
+
+    private void appendPhoneNumbers(StringBuilder out, ArrayList<ContactData.NumberDetail> numbers) {
         if( numbers != null ) {
             for( int a = 0; a < numbers.size(); a++ ) {
                 ArrayList< String > types = new ArrayList< String >();
@@ -236,29 +267,54 @@ public class VcardWriter implements IContactsWriter {
                         ":" + escape( numbers.get( a ).getNumber() ) ) + "\n" );
             }
         }
+    }
 
-        // append email addresses
-        ArrayList< ContactData.EmailDetail > emails =
-                contact.getEmails();
-        if( emails != null ) {
-            for( int a = 0; a < emails.size(); a++ ) {
-                ArrayList< String > types = new ArrayList< String >();
-                types.add( "INTERNET" );
-                switch( emails.get( a ).getType() ) {
-                    case ContactData.TYPE_HOME:
-                        types.add( "HOME" ); break;
-                    case ContactData.TYPE_WORK:
-                        types.add( "WORK" ); break;
-                }
-                out.append( fold( "EMAIL" +
-                        ( types.size() > 0? ";TYPE=" + join( types, "," ) : "" ) +
-                        ":" + escape( emails.get( a ).getEmail() ) ) + "\n" );
+    private void appendOrganisationsAndTitles(StringBuilder out, ArrayList<ContactData.OrganisationDetail> organisations) {
+        if( organisations != null ) {
+            for( int a = 0; a < organisations.size(); a++ ) {
+                if( organisations.get( a ).getOrganisation() != null )
+                    out.append( fold( "ORG:" + escape(
+                            organisations.get( a ).getOrganisation() ) ) + "\n" );
+                if( organisations.get( a ).getTitle() != null )
+                    out.append( fold( "TITLE:" + escape(
+                            organisations.get( a ).getTitle() ) ) + "\n" );
             }
         }
+    }
 
-        // append addresses
-        ArrayList< ContactData.AddressDetail > addresses =
-                contact.getAddresses();
+    private void appendName(StringBuilder out, String name) {
+        if( name == null ) name = "";
+        String[] bits = name.split( " +" );
+        StringBuilder tmp = new StringBuilder();
+        for( int a = 1; a < bits.length - 1; a++ ) {
+            if( a > 1 ) tmp.append( " " );
+            tmp.append( escape( bits[ a ] ) );
+        }
+        String value = escape( bits[ bits.length - 1 ] ) + ";" +
+                ( bits.length > 1? escape( bits[ 0 ] ) : "" ) + ";" +
+                tmp.toString() + ";;";
+        out.append( fold( "N:" + value ) + "\n" );
+    }
+
+    private void appendBirthday(StringBuilder out, String birthday) {
+        if( birthday != null ) {
+            birthday.trim();
+            if( isValidDateAndOrTime( birthday ) )
+                out.append( fold( "BDAY:" + escape( birthday ) ) + "\n" );
+            else
+                out.append(
+                        fold( "BDAY;VALUE=text:" + escape( birthday ) ) + "\n" );
+        }
+    }
+
+    private void appendLists(StringBuilder out, final String tag,ArrayList<String> notes) {
+        if( notes != null )
+            for( int a = 0; a < notes.size(); a++ ) {
+                out.append( fold( tag + escape( notes.get( a ) ) ) + "\n" );
+            }
+    }
+
+    private void appendAdresses(StringBuilder out, ArrayList<ContactData.AddressDetail> addresses) {
         if( addresses != null ) {
             for( int a = 0; a < addresses.size(); a++ ) {
                 ArrayList< String > types = new ArrayList< String >();
@@ -276,42 +332,6 @@ public class VcardWriter implements IContactsWriter {
                         ":" + escape( addresses.get( a ).getAddress() ) ) + "\n" );
             }
         }
-
-        // append notes
-        ArrayList< String > notes = contact.getNotes();
-        if( notes != null )
-            for( int a = 0; a < notes.size(); a++ )
-                out.append( fold( "NOTE:" + escape( notes.get( a ) ) ) + "\n" );
-
-        // append birthday
-        String birthday = contact.getBirthday();
-        if( birthday != null ) {
-            birthday.trim();
-            if( isValidDateAndOrTime( birthday ) )
-                out.append( fold( "BDAY:" + escape( birthday ) ) + "\n" );
-            else
-                out.append(
-                        fold( "BDAY;VALUE=text:" + escape( birthday ) ) + "\n" );
-        }
-
-        // append footer
-        out.append( "END:VCARD\n" );
-
-        // replace '\n' with "\r\n" (spec requires CRLF)
-        int pos = 0;
-        while( true ) {
-            pos = out.indexOf( "\n", pos );
-            if( pos == -1 ) break;
-            out.replace( pos, pos + 1, "\r\n" );
-
-            // skip our inserted string
-            pos += 2;
-        }
-
-        // write to file
-        writeToFile( out.toString().getBytes(), identifier );
-
-        return true;
     }
 
     @Override

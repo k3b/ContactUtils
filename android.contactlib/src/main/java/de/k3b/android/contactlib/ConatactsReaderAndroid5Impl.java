@@ -28,17 +28,27 @@ import android.content.ContentResolver;
 import android.database.Cursor;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds;
+import android.util.Log;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import de.k3b.contactlib.ContactData;
 import de.k3b.contactlib.IConatactsReader;
+import de.k3b.contactlib.LibContactGlobal;
 
 @TargetApi(5)
 public class ConatactsReaderAndroid5Impl implements IConatactsReader
 {
-	private final ContentResolver contentResolver;
-	Cursor _cur = null;
+    private final ContentResolver contentResolver;
+	Cursor _contactCursor = null;
+    private Map<String,String> _groupId2Name = null;
+    private Map<String, Long> _statistics = null;
+    private Map<String,Long> _statisticsUnknown = null;
 
-	public ConatactsReaderAndroid5Impl(ContentResolver contentResolver)
+    public ConatactsReaderAndroid5Impl(ContentResolver contentResolver)
 	{
 		this.contentResolver = contentResolver;
 	}
@@ -105,10 +115,16 @@ public class ConatactsReaderAndroid5Impl implements IConatactsReader
 	public boolean getNextContact( ContactData contact )
 	{
 		// set up cursor
-		if( _cur == null )
+        if( _contactCursor == null )
 		{
+		    this._groupId2Name = getGroups();
+            if (LibContactGlobal.debugEnabled) {
+
+                this._statistics = new HashMap<String, Long>();
+                _statisticsUnknown = new HashMap<String, Long>();
+            }
 			// get all aggregate contacts
-			_cur = this.contentResolver.query(
+			_contactCursor = this.contentResolver.query(
 				ContactsContract.Contacts.CONTENT_URI,
 				new String[] {
 					ContactsContract.Contacts._ID,
@@ -117,103 +133,249 @@ public class ConatactsReaderAndroid5Impl implements IConatactsReader
 		}
 
 		// if there are no more aggregate contacts, abort
-		if( _cur == null ) return false;
-		if( !_cur.moveToNext() ) {
-			_cur.close();
-			_cur = null;
+		if( _contactCursor == null ) return false;
+		if( !_contactCursor.moveToNext() ) {
+			_contactCursor.close();
+			_contactCursor = null;
 			return false;
 		}
 
 		// get this aggregate contact's id
-		Long id = _cur.getLong( _cur.getColumnIndex(
+		Long id = _contactCursor.getLong( _contactCursor.getColumnIndex(
 			ContactsContract.Contacts._ID ) );
 
 		// create contact
-		contact.setName( _cur.getString( _cur.getColumnIndex(
-			ContactsContract.Contacts.DISPLAY_NAME ) ) );
+		contact.setName(getString(_contactCursor, ContactsContract.Contacts.DISPLAY_NAME));
 
 		// get all contact data pertaining to the aggregate contact
-		Cursor cur = this.contentResolver.query(
-			ContactsContract.Data.CONTENT_URI,
-			new String[]{
-				ContactsContract.Data.MIMETYPE,
-				ContactsContract.Data.IS_PRIMARY,
-				ContactsContract.Data.DATA1,
-				ContactsContract.Data.DATA2,
-				ContactsContract.Data.DATA4,
-			},
-			ContactsContract.Data.CONTACT_ID + " = ? AND " +
-// column DELETED not found!?
-//				ContactsContract.Data.DELETED + " = 0 AND " +
-				ContactsContract.Data.MIMETYPE + " IN ( ?, ?, ?, ?, ?, ? ) ",
-			new String[] {
-				String.valueOf( id ),
-				CommonDataKinds.Phone.CONTENT_ITEM_TYPE,
-				CommonDataKinds.Email.CONTENT_ITEM_TYPE,
-				CommonDataKinds.Organization.CONTENT_ITEM_TYPE,
-				CommonDataKinds.StructuredPostal.CONTENT_ITEM_TYPE,
-				CommonDataKinds.Note.CONTENT_ITEM_TYPE,
-				CommonDataKinds.Event.CONTENT_ITEM_TYPE,
-			},
-			ContactsContract.Data.IS_SUPER_PRIMARY + " DESC, " +
-				ContactsContract.Data.RAW_CONTACT_ID + ", " +
-				ContactsContract.Data.IS_PRIMARY + " DESC" );
-		while( cur.moveToNext() )
+		Cursor detailCursor = getDetailQuery(id);
+		while( detailCursor.moveToNext() )
 		{
-			String type = cur.getString( cur.getColumnIndex(
-				ContactsContract.Data.MIMETYPE ) );
+			String type = getString(detailCursor, ContactsContract.Data.MIMETYPE);
+            count(this._statistics, type);
 
 			// add phone numbers
 			if( type.equals( CommonDataKinds.Phone.CONTENT_ITEM_TYPE ) )
-				contact.addNumber( contact.new NumberDetail(
-					convertBackendTypeToType( CommonDataKinds.Phone.class,
-						cur.getInt( cur.getColumnIndex(
-							CommonDataKinds.Phone.TYPE ) ) ),
-					cur.getString( cur.getColumnIndex(
-						CommonDataKinds.Phone.NUMBER ) ) ) );
+				addPhone(contact, detailCursor);
 
 			// add email addresses
 			else if( type.equals( CommonDataKinds.Email.CONTENT_ITEM_TYPE ) )
-				contact.addEmail( contact.new EmailDetail(
-					convertBackendTypeToType( CommonDataKinds.Email.class,
-						cur.getInt( cur.getColumnIndex(
-							CommonDataKinds.Email.TYPE ) ) ),
-					cur.getString( cur.getColumnIndex(
-						CommonDataKinds.Email.DATA ) ) ) );
+				addEmail(contact, detailCursor);
 
 			// add postal addresses
 			else if( type.equals( CommonDataKinds.StructuredPostal.CONTENT_ITEM_TYPE ) )
-				contact.addAddress( contact.new AddressDetail(
-					convertBackendTypeToType( CommonDataKinds.StructuredPostal.class,
-						cur.getInt( cur.getColumnIndex(
-							CommonDataKinds.StructuredPostal.TYPE ) ) ),
-					cur.getString( cur.getColumnIndex(
-						CommonDataKinds.StructuredPostal.FORMATTED_ADDRESS ) ) ) );
+				addAddress(contact, detailCursor);
 
 			// add organisations/titles
 			else if( type.equals( CommonDataKinds.Organization.CONTENT_ITEM_TYPE ) )
-				contact.addOrganisation( contact.new OrganisationDetail(
-					cur.getString( cur.getColumnIndex(
-						CommonDataKinds.Organization.COMPANY ) ),
-					cur.getString( cur.getColumnIndex(
-						CommonDataKinds.Organization.TITLE ) ) ) );
+				addOrganization(contact, detailCursor);
 
-			// add notes
+                // add organisations/titles
+            else if( type.equals( CommonDataKinds.GroupMembership.CONTENT_ITEM_TYPE ) ) {
+                addGroup(contact, detailCursor);
+                showCursor(contact, detailCursor);
+            }
+
+            // add notes
 			else if( type.equals( CommonDataKinds.Note.CONTENT_ITEM_TYPE ) )
-				contact.addNote( cur.getString( cur.getColumnIndex(
-					CommonDataKinds.Note.NOTE ) ) );
+				addNote(contact, detailCursor);
 
 			// add birthday
 			else if( type.equals( CommonDataKinds.Event.CONTENT_ITEM_TYPE ) ) {
-				int event = cur.getInt( cur.getColumnIndex(
-					CommonDataKinds.Event.TYPE ) );
-				if( event == CommonDataKinds.Event.TYPE_BIRTHDAY )
-					contact.setBirthday( cur.getString( cur.getColumnIndex(
-						CommonDataKinds.Event.START_DATE ) ) );
-			}
+                addEvent(contact, detailCursor);
+			} else  {
+                count(this._statisticsUnknown, type);
+                showCursor(contact, detailCursor);
+
+            }
 		}
-		cur.close();
+		detailCursor.close();
 
 		return true;
 	}
+
+    private void addGroup(ContactData contact, Cursor detailCursor) {
+        final String id = getString(detailCursor, CommonDataKinds.GroupMembership.GROUP_ROW_ID);
+        contact.addGroup(this._groupId2Name.get(id));
+    }
+
+    private void addEvent(ContactData contact, Cursor detailCursor) {
+        int event = getInt(detailCursor, CommonDataKinds.Event.TYPE);
+        if( event == CommonDataKinds.Event.TYPE_BIRTHDAY )
+            contact.setBirthday(getString(detailCursor, CommonDataKinds.Event.START_DATE));
+    }
+
+    private void addNote(ContactData contact, Cursor detailCursor) {
+        contact.addNote(getString(detailCursor, CommonDataKinds.Note.NOTE));
+    }
+
+    private void addOrganization(ContactData contact, Cursor detailCursor) {
+        contact.addOrganisation(contact.new OrganisationDetail(
+                getString(detailCursor, CommonDataKinds.Organization.COMPANY),
+                getString(detailCursor, CommonDataKinds.Organization.TITLE)));
+    }
+
+    private void addAddress(ContactData contact, Cursor detailCursor) {
+        contact.addAddress( contact.new AddressDetail(
+            convertBackendTypeToType( CommonDataKinds.StructuredPostal.class,
+                getInt(detailCursor, CommonDataKinds.StructuredPostal.TYPE)),
+                getString(detailCursor, CommonDataKinds.StructuredPostal.FORMATTED_ADDRESS)) );
+    }
+
+    private void addEmail(ContactData contact, Cursor detailCursor) {
+        contact.addEmail( contact.new EmailDetail(
+            convertBackendTypeToType( CommonDataKinds.Email.class,
+                getInt(detailCursor, CommonDataKinds.Email.TYPE)),
+                getString(detailCursor, CommonDataKinds.Email.DATA)) );
+    }
+
+    private void addPhone(ContactData contact, Cursor detailCursor) {
+        contact.addNumber( contact.new NumberDetail(
+            convertBackendTypeToType( CommonDataKinds.Phone.class,
+                getInt(detailCursor, CommonDataKinds.Phone.TYPE)),
+                getString(detailCursor, CommonDataKinds.Phone.NUMBER)) );
+    }
+
+    private String getString(Cursor detailCursor, String columnName) {
+        return detailCursor.getString(detailCursor.getColumnIndex(
+                columnName));
+    }
+
+    private int getInt(Cursor detailCursor, String colName) {
+        return detailCursor.getInt( detailCursor.getColumnIndex(
+                colName) );
+    }
+
+    private Cursor getDetailQuery(Long id) {
+        return this.contentResolver.query(
+            ContactsContract.Data.CONTENT_URI,
+            new String[]{
+                ContactsContract.Data.MIMETYPE,
+                ContactsContract.Data.IS_PRIMARY,
+                ContactsContract.Data.DATA1,
+                ContactsContract.Data.DATA2,
+                ContactsContract.Data.DATA3,
+                ContactsContract.Data.DATA4,
+                ContactsContract.Data.DATA5,
+            },
+            ContactsContract.Data.CONTACT_ID + " = ? ",
+            new String[] {
+                String.valueOf( id )
+            },
+            ContactsContract.Data.IS_SUPER_PRIMARY + " DESC, " +
+                ContactsContract.Data.RAW_CONTACT_ID + ", " +
+                ContactsContract.Data.IS_PRIMARY + " DESC" );
+    }
+
+    private Cursor getDetailQueryOrg(Long id) {
+        return this.contentResolver.query(
+                ContactsContract.Data.CONTENT_URI,
+                new String[]{
+                        ContactsContract.Data.MIMETYPE,
+                        ContactsContract.Data.IS_PRIMARY,
+                        ContactsContract.Data.DATA1,
+                        ContactsContract.Data.DATA2,
+                        ContactsContract.Data.DATA4,
+                },
+                ContactsContract.Data.CONTACT_ID + " = ? AND " +
+// column DELETED not found!?
+//				ContactsContract.Data.DELETED + " = 0 AND " +
+                        ContactsContract.Data.MIMETYPE + " IN ( ?, ?, ?, ?, ?, ? ) ",
+                new String[] {
+                        String.valueOf( id ),
+                        CommonDataKinds.Phone.CONTENT_ITEM_TYPE,
+                        CommonDataKinds.Email.CONTENT_ITEM_TYPE,
+                        CommonDataKinds.Organization.CONTENT_ITEM_TYPE,
+                        CommonDataKinds.StructuredPostal.CONTENT_ITEM_TYPE,
+                        CommonDataKinds.Note.CONTENT_ITEM_TYPE,
+                        CommonDataKinds.Event.CONTENT_ITEM_TYPE,
+                },
+                ContactsContract.Data.IS_SUPER_PRIMARY + " DESC, " +
+                        ContactsContract.Data.RAW_CONTACT_ID + ", " +
+                        ContactsContract.Data.IS_PRIMARY + " DESC" );
+    }
+
+    private void count(Map<String, Long> statistics, String type) {
+        if (statistics != null) {
+            Long count = statistics.get(type);
+            if (count == null) count = 0l;
+            statistics.put(type, count + 1l);
+        }
+    }
+
+    private Map<String,String> getGroups() {
+        Map<String, String> result = new HashMap<String, String>();
+
+        Cursor c = null;
+        try {
+            final String[] GROUP_PROJECTION = new String[]{
+                    ContactsContract.Groups._ID,
+                    ContactsContract.Groups.TITLE
+            };
+
+            c = this.contentResolver.query(
+                    ContactsContract.Groups.CONTENT_SUMMARY_URI,
+                    GROUP_PROJECTION,
+                    ContactsContract.Groups.DELETED + "!='1' AND " +
+                            ContactsContract.Groups.GROUP_VISIBLE + "!='0' "
+                    ,
+                    null,
+                    null);
+            final int IDX_ID = c.getColumnIndex(ContactsContract.Groups._ID);
+            final int IDX_TITLE = c.getColumnIndex(ContactsContract.Groups.TITLE);
+
+            while (c.moveToNext()) {
+                result.put(c.getString(IDX_ID), c.getString(IDX_TITLE));
+            }
+        } catch (Exception ignor) {
+            ignor.printStackTrace();
+        } finally {
+            c.close();
+        }
+        showStatistics("Groups", result);
+        return result;
+    }
+
+    @Override
+	public void close() throws IOException {
+		if (_contactCursor !=  null)  _contactCursor.close();
+		_contactCursor = null;
+
+        showStatistics("details" , this._statistics);
+        showStatistics("unknown" , this._statisticsUnknown);
+	}
+
+    private void showCursor(ContactData detils, Cursor cur) {
+        showCursor(detils.toString(), cur,
+                ContactsContract.Data.MIMETYPE,
+                ContactsContract.Data.DATA1,
+                ContactsContract.Data.DATA2,
+                ContactsContract.Data.DATA3,
+                ContactsContract.Data.DATA4,
+                ContactsContract.Data.DATA5);
+    }
+
+    private void showCursor(String detils, Cursor cur, String... fields) {
+        if (LibContactGlobal.debugEnabled) {
+            StringBuilder result = new StringBuilder();
+            result.append(detils);
+            for (String k : fields) {
+                result.append("\n\t").append(k).append(":").append(getString(cur, k));
+            }
+            Log.i(LibContactGlobal.TAG, result.toString());
+        }
+    }
+
+    private <T> void showStatistics(String detils, Map<String,T> statistics) {
+        if (LibContactGlobal.debugEnabled) {
+            StringBuilder result = new StringBuilder();
+            result.append(detils);
+            String[] keys = statistics.keySet().toArray(new String[statistics.size()]);
+            Arrays.sort(keys);
+            for (String k : keys) {
+                result.append("\n\t").append(k).append(":").append(statistics.get(k));
+            }
+            Log.i(LibContactGlobal.TAG, result.toString());
+        }
+    }
 }
